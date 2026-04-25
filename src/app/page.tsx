@@ -179,15 +179,15 @@ export default function Dashboard() {
       </aside>
 
       <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
-        <header className="h-[60px] border-b border-gray-200 bg-white flex items-center justify-between px-4 sm:px-6 shrink-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center gap-4">
-            <button className="md:hidden text-gray-500 hover:bg-gray-100 p-1.5 rounded-md" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button>
+        <header className="h-[60px] border-b border-gray-200 bg-white flex items-center justify-between px-3 sm:px-6 shrink-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
+            <button className="md:hidden text-gray-500 hover:bg-gray-100 p-1.5 rounded-md shrink-0" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button>
             {isSidebarCollapsed && (
-              <button className="hidden md:flex text-gray-500 hover:bg-gray-100 p-1.5 rounded-md transition-colors" onClick={() => setSidebarCollapsed(false)} title="Mostrar menú">
+              <button className="hidden md:flex text-gray-500 hover:bg-gray-100 p-1.5 rounded-md transition-colors shrink-0" onClick={() => setSidebarCollapsed(false)} title="Mostrar menú">
                 <PanelLeft size={20} />
               </button>
             )}
-            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-gray-800 cursor-pointer hover:bg-gray-50 p-1 rounded-md transition-colors">
+            <h1 className="text-lg sm:text-2xl font-bold flex items-center gap-2 text-gray-800 cursor-pointer hover:bg-gray-50 p-1 rounded-md transition-colors truncate">
               Gastos Compartidos
             </h1>
           </div>
@@ -211,7 +211,7 @@ export default function Dashboard() {
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#f5f6f8]">
           <div className="max-w-7xl mx-auto h-full flex flex-col">
             
-            <div className="flex items-center gap-6 border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar shrink-0">
+            <div className="flex items-center gap-2 sm:gap-6 border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar shrink-0">
               <Tab label="Resumen" active={activeTab === 'resumen'} onClick={() => setActiveTab('resumen')} />
               <Tab label="Calendario" active={activeTab === 'calendario'} onClick={() => setActiveTab('calendario')} />
               <Tab label="Estadísticas" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} />
@@ -241,15 +241,15 @@ export default function Dashboard() {
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-10">
-                  <div className="px-6 py-4 flex items-center justify-between bg-white border-b border-gray-100">
-                    <div className="flex items-center gap-3 flex-wrap">
+                  <div className="px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between bg-white border-b border-gray-100 gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
                       <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <ChevronDown size={20} className="text-gray-400" />
-                        Registro Financiero de Gastos
-                        <span className="text-sm font-normal text-gray-500 ml-2">({currentMonthExpenses.length} items)</span>
+                        <ChevronDown size={20} className="text-gray-400 shrink-0" />
+                        <span className="truncate">Registro Financiero</span>
+                        <span className="text-sm font-normal text-gray-500 ml-1">({currentMonthExpenses.length})</span>
                       </h2>
                       {/* Filter button — portal-based panel */}
-                      <div>
+                      <div className="flex-shrink-0">
                         <button
                           ref={filterBtnRef}
                           onClick={toggleFilter}
@@ -302,9 +302,9 @@ export default function Dashboard() {
                         document.body
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => setIncomeModalOpen(true)} className="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 font-medium rounded-md hover:bg-blue-100 transition-colors">Añadir Ingreso</button>
-                      <button onClick={() => setExpenseModalOpen(true)} className="px-3 py-1.5 text-sm bg-[var(--primary)] text-white font-medium rounded-md hover:bg-[var(--primary-hover)] transition-colors flex items-center gap-1.5 shadow-sm">
+                    <div className="flex gap-2 w-full lg:w-auto mt-2 lg:mt-0">
+                      <button onClick={() => setIncomeModalOpen(true)} className="flex-1 lg:flex-none justify-center px-3 py-2 sm:py-1.5 text-sm bg-blue-50 text-blue-600 font-medium rounded-md hover:bg-blue-100 transition-colors">Añadir Ingreso</button>
+                      <button onClick={() => setExpenseModalOpen(true)} className="flex-1 lg:flex-none justify-center px-3 py-2 sm:py-1.5 text-sm bg-[var(--primary)] text-white font-medium rounded-md hover:bg-[var(--primary-hover)] transition-colors flex items-center gap-1.5 shadow-sm">
                         <Plus size={16} /> Añadir Gasto
                       </button>
                     </div>
