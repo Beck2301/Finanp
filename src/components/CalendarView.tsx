@@ -27,8 +27,8 @@ export function CalendarView({ incomes, expenses }: CalendarViewProps) {
       id: `exp-${exp.id}`,
       title: `- $${exp.amount} ${exp.concept}`,
       date: exp.date,
-      backgroundColor: exp.status === 'Pagado' ? '#9ca3af' : 'var(--status-stuck)',
-      borderColor: exp.status === 'Pagado' ? '#9ca3af' : 'var(--status-stuck)',
+      backgroundColor: exp.status === 'Completado' ? '#9ca3af' : 'var(--status-stuck)',
+      borderColor: exp.status === 'Completado' ? '#9ca3af' : 'var(--status-stuck)',
       textColor: 'white',
       extendedProps: { type: 'expense', data: exp }
     }));
