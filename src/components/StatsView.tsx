@@ -106,7 +106,7 @@ export function StatsView({ expenses, incomes }: StatsViewProps) {
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Summary KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
             title="Total Gastado"
             value={`$${totalExpenses.toFixed(2)}`}
@@ -227,9 +227,9 @@ export function StatsView({ expenses, incomes }: StatsViewProps) {
                   <div key={expense.id} className="flex items-center gap-4">
                     <span className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 text-[12px] font-bold flex items-center justify-center shrink-0">{i + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-1 gap-2">
                         <span className="text-sm font-medium text-gray-800 truncate">{expense.concept}</span>
-                        <span className="text-sm font-bold text-gray-900 ml-4 shrink-0">${expense.amount.toFixed(2)}</span>
+                        <span className="text-sm font-bold text-gray-900 shrink-0">${expense.amount.toFixed(2)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-gray-100 rounded-full h-1.5">

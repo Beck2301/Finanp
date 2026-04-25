@@ -75,14 +75,14 @@ export function BudgetView({ available }: BudgetViewProps) {
 
         {/* Main card */}
         <div className={`bg-white rounded-2xl border shadow-sm p-6 ${isNegative ? 'border-red-200' : 'border-gray-200'}`}>
-          <div className="flex items-start justify-between mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
             <div>
               <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Disponible actualmente</p>
               <p className={`text-4xl font-bold tabular-nums ${isNegative ? 'text-red-500' : 'text-gray-800'}`}>
                 ${available.toFixed(2)}
               </p>
             </div>
-            <span className={`text-sm font-semibold px-3 py-1.5 rounded-full border ${statusBg} ${statusColor}`}>{statusLabel}</span>
+            <span className={`text-sm font-semibold px-3 py-1.5 rounded-full border ${statusBg} ${statusColor} shrink-0`}>{statusLabel}</span>
           </div>
 
           {/* Date selector */}
