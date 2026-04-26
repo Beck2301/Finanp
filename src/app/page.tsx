@@ -126,7 +126,26 @@ export default function Dashboard() {
   const toggleFilter = () => {
     if (!filterActive && filterBtnRef.current) {
       const rect = filterBtnRef.current.getBoundingClientRect();
-      setFilterCoords({ top: rect.bottom + 6, left: rect.left });
+      let top = rect.bottom + 6;
+      let left = rect.left;
+      
+      if (typeof window !== 'undefined') {
+        const spaceBelow = window.innerHeight - top;
+        const panelHeight = 350; // Aprox panel height
+        
+        // Show above if not enough space below
+        if (spaceBelow < panelHeight && rect.top > panelHeight) {
+          top = rect.top - panelHeight - 6;
+        }
+        
+        // Center horizontally on very small screens, or prevent right overflow
+        if (window.innerWidth < 640) {
+          left = Math.max(16, (window.innerWidth - 260) / 2);
+        } else if (left + 260 > window.innerWidth) {
+          left = window.innerWidth - 280;
+        }
+      }
+      setFilterCoords({ top, left });
     }
     setFilterActive(f => !f);
   };
