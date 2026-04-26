@@ -10,7 +10,7 @@ import {
   Trash2, ArrowUpDown, LogOut
 } from "lucide-react";
 import { Income, Expense, PaymentStatus } from "@/types/finance";
-import { IncomeModal, ExpenseModal, CategoryModal, CustomColumnModal } from "@/components/Modals";
+import { IncomeModal, ExpenseModal, CategoryModal, CustomColumnModal, EditExpenseModal, IncomesListModal } from "@/components/Modals";
 import { CalendarView } from "@/components/CalendarView";
 import { StatsView } from "@/components/StatsView";
 import { BudgetView } from "@/components/BudgetView";
@@ -34,14 +34,75 @@ const DEFAULT_PAYMENT_METHODS = ["Efectivo", "Tarjeta", "Transferencia"];
 const DEFAULT_STATUSES = ["Completado", "Pendiente", "Atrasado"];
 
 export default function Dashboard() {
+  const [filterActive, setFilterActive] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("Todos");
+  const [filterCategory, setFilterCategory] = useState<string>("Todas");
+  const [filterPaymentType, setFilterPaymentType] = useState<string>("Todos");
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("Todos");
+
   const {
     loading,
+    userId,
     expenses, incomes,
     categories, paymentTypes, paymentMethods, statuses,
+    colors, savedFilters, columnWidths,
     addExpense, updateExpense: updateExpenseDb, deleteExpense,
-    addIncome,
+    addIncome, updateIncome: updateIncomeDb, deleteIncome,
     updateCategories, updatePaymentTypes, updatePaymentMethods, updateStatuses,
+    updateColors, updateSavedFilters, updateColumnWidths,
   } = useFinanceData();
+
+  // Load filters from DB once loaded
+  useEffect(() => {
+    if (!loading && savedFilters) {
+      if (savedFilters.status) setFilterStatus(savedFilters.status);
+      if (savedFilters.category) setFilterCategory(savedFilters.category);
+      if (savedFilters.paymentType) setFilterPaymentType(savedFilters.paymentType);
+      if (savedFilters.paymentMethod) setFilterPaymentMethod(savedFilters.paymentMethod);
+    }
+  }, [loading, savedFilters]);
+
+  // Save filters to DB when they change
+  useEffect(() => {
+    if (!loading && userId) {
+      updateSavedFilters({
+        status: filterStatus,
+        category: filterCategory,
+        paymentType: filterPaymentType,
+        paymentMethod: filterPaymentMethod,
+      });
+    }
+  }, [filterStatus, filterCategory, filterPaymentType, filterPaymentMethod, loading, userId, updateSavedFilters]);
+
+  // Column Resizing Logic
+  const [localColumnWidths, setLocalColumnWidths] = useState<Record<string, number>>({});
+  
+  useEffect(() => {
+    if (columnWidths && Object.keys(columnWidths).length > 0) {
+      setLocalColumnWidths(columnWidths);
+    } else {
+      // Default widths
+      setLocalColumnWidths({
+        date: 160,
+        status: 160,
+        concept: 200,
+        amount: 130,
+        paymentType: 180,
+        paymentMethod: 140,
+        category: 130,
+        description: 180,
+      });
+    }
+  }, [columnWidths]);
+
+  const handleResize = (id: string, width: number) => {
+    const newWidths = { ...localColumnWidths, [id]: Math.max(50, width) };
+    setLocalColumnWidths(newWidths);
+  };
+
+  const saveResize = (id: string) => {
+    updateColumnWidths(localColumnWidths);
+  };
 
   const [activeTab, setActiveTab] = useState<string>("resumen");
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -52,14 +113,11 @@ export default function Dashboard() {
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
   const [isCategoryModalOpen, setCategoryModalOpen] = useState(false);
   const [isColumnModalOpen, setColumnModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [isIncomesListOpen, setIncomesListOpen] = useState(false);
 
   // Filters & Month
   const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 1));
-  const [filterActive, setFilterActive] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>("Todos");
-  const [filterCategory, setFilterCategory] = useState<string>("Todas");
-  const [filterPaymentType, setFilterPaymentType] = useState<string>("Todos");
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>("Todos");
   const filterBtnRef = useRef<HTMLButtonElement>(null);
   const filterPanelRef = useRef<HTMLDivElement>(null);
   const [filterCoords, setFilterCoords] = useState({ top: 0, left: 0 });
@@ -100,9 +158,39 @@ export default function Dashboard() {
     return isSameMonthYear || isRecurrentAndPast;
   });
 
+  // Total Incomes for Current Month (including Recurrent ones that apply this month)
   const totalIncome = currentMonthIncomes.reduce((acc, curr) => acc + curr.amount, 0);
-  const totalExpenses = currentMonthExpenses.reduce((acc, curr) => acc + curr.amount, 0);
-  const available = totalIncome - totalExpenses;
+  
+  // Total Expenses for Current Month
+  const projectedExpenses = currentMonthExpenses.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalExpenses = currentMonthExpenses.filter(e => e.status === "Completado").reduce((acc, curr) => acc + curr.amount, 0);
+
+  // Accumulated Balance (Disponible Acumulado) up to the selected month
+  let accumulatedIncome = 0;
+  incomes.forEach(i => {
+    const incDate = new Date(i.date);
+    if (incDate.getFullYear() > currentDate.getFullYear() || 
+       (incDate.getFullYear() === currentDate.getFullYear() && incDate.getMonth() > currentDate.getMonth())) {
+       return; // Future income, ignore
+    }
+    if (i.type === "Recurrente") {
+      let monthsCount = (currentDate.getFullYear() - incDate.getFullYear()) * 12 + (currentDate.getMonth() - incDate.getMonth()) + 1;
+      accumulatedIncome += i.amount * monthsCount;
+    } else {
+      accumulatedIncome += i.amount;
+    }
+  });
+
+  const accumulatedExpenses = expenses.filter(e => {
+    if (e.status !== "Completado") return false;
+    const expDate = new Date(e.date);
+    return expDate.getFullYear() < currentDate.getFullYear() || 
+      (expDate.getFullYear() === currentDate.getFullYear() && expDate.getMonth() <= currentDate.getMonth());
+  }).reduce((acc, curr) => acc + curr.amount, 0);
+
+  const accumulatedAvailable = accumulatedIncome - accumulatedExpenses;
+
+  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -166,7 +254,9 @@ export default function Dashboard() {
     <div className="flex h-screen w-full overflow-hidden bg-[#f5f6f8] text-[var(--foreground)] font-sans">
       <CustomColumnModal isOpen={isColumnModalOpen} onClose={() => setColumnModalOpen(false)} onAdd={(name) => setCustomColumns([...customColumns, { id: `col_${Date.now()}`, name }])} />
       <IncomeModal isOpen={isIncomeModalOpen} onClose={() => setIncomeModalOpen(false)} onAdd={(i) => addIncome(i)} />
+      <IncomesListModal isOpen={isIncomesListOpen} onClose={() => setIncomesListOpen(false)} incomes={incomes} onUpdate={updateIncomeDb} onDelete={deleteIncome} />
       <ExpenseModal isOpen={isExpenseModalOpen} onClose={() => setExpenseModalOpen(false)} onAdd={(e) => addExpense(e)} categories={categories} />
+      <EditExpenseModal isOpen={!!editingExpense} onClose={() => setEditingExpense(null)} expense={editingExpense} onUpdate={updateExpenseDb} categories={categories} />
       <CategoryModal isOpen={isCategoryModalOpen} onClose={() => setCategoryModalOpen(false)} categories={categories} setCategories={updateCategories} />
       {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
 
@@ -254,9 +344,9 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                  <StatCard title="Ingresos Totales" amount={totalIncome} color="text-[var(--status-done)]" onClick={() => setIncomeModalOpen(true)} />
-                  <StatCard title="Gastos Totales" amount={totalExpenses} color="text-[var(--status-stuck)]" />
-                  <StatCard title="Disponible" amount={available} color="text-[var(--primary)]" isTotal />
+                  <StatCard title="Ingresos Totales" amount={totalIncome} color="text-[var(--status-done)]" onClick={() => setIncomesListOpen(true)} />
+                  <StatCard title="Gastos Totales" amount={totalExpenses} subAmount={`Proyectado: $${formatCurrency(projectedExpenses)}`} color="text-[var(--status-stuck)]" />
+                  <StatCard title="Disponible Total" amount={accumulatedAvailable} color="text-[var(--primary)]" isTotal />
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-10">
@@ -331,84 +421,114 @@ export default function Dashboard() {
 
                   <div className="overflow-auto max-h-[60vh] rounded-b-xl border-t border-gray-100">
                     <div className="min-w-max flex flex-col">
-                      <div className="flex text-gray-500 text-[13px] border-b border-gray-200 bg-gray-50 sticky top-0 z-20 shadow-sm group/header">
-                        <div onClick={() => handleSort('date')} className="w-[160px] p-2 flex items-center gap-1.5 border-r border-gray-200 font-medium cursor-pointer hover:bg-gray-100"><CalIcon size={14} /> Fecha <ArrowUpDown size={12} className="opacity-0 group-hover/header:opacity-100 transition-opacity ml-auto" /></div>
-                        <div className="w-[160px] p-2 flex items-center gap-1.5 border-r border-gray-200 font-medium"><Asterisk size={14} /> Estado</div>
-                        <div className="w-[200px] p-2 flex items-center gap-1.5 border-r border-gray-200 font-medium"><FileText size={14} /> Concepto</div>
-                        <div onClick={() => handleSort('monto')} className="w-[130px] p-2 flex items-center gap-1.5 border-r border-gray-200 font-medium cursor-pointer hover:bg-gray-100"><Hash size={14} /> Monto <ArrowUpDown size={12} className="opacity-0 group-hover/header:opacity-100 transition-opacity ml-auto" /></div>
-                        <div className="w-[180px] p-2 flex items-center gap-1.5 border-r border-gray-200 font-medium"><Asterisk size={14} /> Tipo de pago</div>
-                        <div className="w-[140px] p-2 flex items-center gap-1.5 border-r border-gray-200 font-medium"><CreditCard size={14} /> Forma de pago</div>
-                        <div className="w-[130px] p-2 flex items-center gap-1.5 border-r border-gray-200 font-medium"><Building size={14} /> Categoría</div>
-                        <div className="w-[180px] p-2 flex items-center gap-1.5 border-r border-gray-200 font-medium"><AlignLeft size={14} /> Detalle</div>
+                      <div className="flex text-gray-500 text-[13px] border-b border-gray-300 bg-gray-50 sticky top-0 z-20 shadow-sm group/header">
+                        <div style={{ width: localColumnWidths.date || 160 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium cursor-pointer hover:bg-gray-100 relative shrink-0">
+                          <CalIcon size={14} /> Fecha 
+                          <ArrowUpDown size={12} className="opacity-0 group-hover/header:opacity-100 transition-opacity ml-auto" />
+                          <ResizeHandle onResize={(w) => handleResize('date', w)} onSave={() => saveResize('date')} />
+                        </div>
+                        <div style={{ width: localColumnWidths.status || 160 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
+                          <Asterisk size={14} /> Estado
+                          <ResizeHandle onResize={(w) => handleResize('status', w)} onSave={() => saveResize('status')} />
+                        </div>
+                        <div style={{ width: localColumnWidths.concept || 200 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
+                          <FileText size={14} /> Concepto
+                          <ResizeHandle onResize={(w) => handleResize('concept', w)} onSave={() => saveResize('concept')} />
+                        </div>
+                        <div style={{ width: localColumnWidths.amount || 130 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium cursor-pointer hover:bg-gray-100 relative shrink-0">
+                          <Hash size={14} /> Monto 
+                          <ArrowUpDown size={12} className="opacity-0 group-hover/header:opacity-100 transition-opacity ml-auto" />
+                          <ResizeHandle onResize={(w) => handleResize('amount', w)} onSave={() => saveResize('amount')} />
+                        </div>
+                        <div style={{ width: localColumnWidths.paymentType || 180 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
+                          <Asterisk size={14} /> Tipo de pago
+                          <ResizeHandle onResize={(w) => handleResize('paymentType', w)} onSave={() => saveResize('paymentType')} />
+                        </div>
+                        <div style={{ width: localColumnWidths.paymentMethod || 140 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
+                          <CreditCard size={14} /> Forma de pago
+                          <ResizeHandle onResize={(w) => handleResize('paymentMethod', w)} onSave={() => saveResize('paymentMethod')} />
+                        </div>
+                        <div style={{ width: localColumnWidths.category || 130 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
+                          <Building size={14} /> Categoría
+                          <ResizeHandle onResize={(w) => handleResize('category', w)} onSave={() => saveResize('category')} />
+                        </div>
+                        <div style={{ width: localColumnWidths.description || 180 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
+                          <AlignLeft size={14} /> Detalle
+                          <ResizeHandle onResize={(w) => handleResize('description', w)} onSave={() => saveResize('description')} />
+                        </div>
                         {customColumns.map(col => (
-                          <div key={col.id} className="w-[150px] p-2 flex items-center gap-1.5 border-r border-gray-200 font-medium bg-gray-50">{col.name}</div>
+                          <div key={col.id} style={{ width: localColumnWidths[col.id] || 150 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium bg-gray-50 relative shrink-0">
+                            {col.name}
+                            <ResizeHandle onResize={(w) => handleResize(col.id, w)} onSave={() => saveResize(col.id)} />
+                          </div>
                         ))}
-                        <div onClick={addCustomColumn} className="w-[50px] p-2 flex items-center justify-center font-medium cursor-pointer hover:bg-gray-200 text-gray-400" title="Añadir columna"><Plus size={16} /></div>
+                        <div onClick={addCustomColumn} className="w-[80px] p-2 flex items-center justify-center font-medium cursor-pointer hover:bg-gray-200 text-gray-400 shrink-0" title="Añadir columna"><Plus size={16} /></div>
                       </div>
 
                       <div className="flex flex-col bg-white">
                         {currentMonthExpenses.length === 0 && <div className="p-4 text-center text-gray-500 text-sm">No hay gastos registrados.</div>}
                         {currentMonthExpenses.map((item) => (
-                          <div key={item.id} className={`flex text-[13px] text-gray-700 border-b border-gray-100 hover:bg-blue-50/30 transition-colors group relative ${item.status === 'Completado' ? 'bg-gray-50 opacity-70 grayscale-[20%]' : ''}`}>
-                            <div className="absolute right-0 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 px-2 pointer-events-none z-30">
-                              <button onClick={() => deleteExpense(item.id)} className="w-6 h-6 rounded bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 pointer-events-auto transition-colors shadow-sm" title="Eliminar fila"><Trash2 size={14} /></button>
+                          <div key={item.id} className={`flex text-[13px] border-b border-gray-300 hover:bg-blue-50/50 transition-colors group relative ${item.status === 'Pendiente' ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-800'}`}>
+                            <div className="absolute right-0 top-0 bottom-0 w-[80px] flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none z-30 gap-2 bg-gradient-to-l from-blue-50/80 to-transparent">
+                              <button onClick={() => setEditingExpense(item)} className="w-7 h-7 rounded-lg bg-white border border-blue-200 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white pointer-events-auto transition-all shadow-sm" title="Editar fila"><MoreHorizontal size={16} /></button>
+                              <button onClick={() => deleteExpense(item.id)} className="w-7 h-7 rounded-lg bg-white border border-red-200 text-red-600 flex items-center justify-center hover:bg-red-600 hover:text-white pointer-events-auto transition-all shadow-sm" title="Eliminar fila"><Trash2 size={16} /></button>
                             </div>
                             
-                            <div className="w-[160px] border-r border-gray-100 flex items-center font-medium">
-                              <input type="date" value={item.date} onChange={(e) => updateExpense(item.id, 'date', e.target.value)} className="w-full h-full px-2 py-2 bg-transparent outline-none focus:bg-white focus:ring-1 ring-blue-400 text-gray-600" />
+                            <div style={{ width: localColumnWidths.date || 160 }} className="border-r border-gray-300 flex items-center font-medium shrink-0">
+                              <input type="date" value={item.date} onChange={(e) => updateExpense(item.id, 'date', e.target.value)} className="w-full h-full px-2 py-2 bg-transparent outline-none focus:bg-white focus:ring-1 ring-blue-400" />
                             </div>
                             
-                            <div className="w-[160px] p-2 border-r border-gray-100 flex items-center overflow-visible">
-                              <TablePillSelect value={item.status} options={statuses} type="status" onSelect={(v) => updateExpense(item.id, 'status', v)} onAddOption={(v) => updateStatuses([...statuses, v])} />
+                            <div style={{ width: localColumnWidths.status || 160 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
+                              <TablePillSelect value={item.status} options={statuses} type="status" onSelect={(v) => updateExpense(item.id, 'status', v)} onAddOption={(v) => updateStatuses([...statuses, v])} colors={colors} onUpdateColors={updateColors} />
                             </div>
                             
-                            <div className="w-[200px] border-r border-gray-100 flex items-center gap-2 font-medium text-gray-800">
+                            <div style={{ width: localColumnWidths.concept || 200 }} className="border-r border-gray-300 flex items-center gap-2 font-medium shrink-0">
                               <input type="text" value={item.concept} onChange={(e) => updateExpense(item.id, 'concept', e.target.value)} className="w-full h-full px-2 py-2 bg-transparent outline-none focus:bg-white focus:ring-1 ring-blue-400 placeholder-gray-300" placeholder="Añadir concepto..." />
                             </div>
                             
-                            <div className="w-[130px] border-r border-gray-100 flex items-center justify-end font-mono font-medium">
+                            <div style={{ width: localColumnWidths.amount || 130 }} className="border-r border-gray-300 flex items-center justify-end font-mono font-medium shrink-0">
                               <div className="flex items-center w-full h-full focus-within:bg-white focus-within:ring-1 ring-blue-400 px-2 py-2">
-                                <input type="number" step="0.01" value={item.amount || ''} onChange={(e) => updateExpense(item.id, 'amount', parseFloat(e.target.value) || 0)} className="w-full bg-transparent outline-none text-right placeholder-gray-300 text-gray-800" placeholder="0.00" />
+                                <input type="text" value={item.amount ? formatCurrency(item.amount) : ''} onChange={(e) => updateExpense(item.id, 'amount', parseFloat(e.target.value.replace(/,/g, '')) || 0)} className="w-full bg-transparent outline-none text-right placeholder-gray-300" placeholder="0.00" />
                                 <span className="text-gray-400 ml-1">US$</span>
                               </div>
                             </div>
                             
-                            <div className="w-[180px] p-2 border-r border-gray-100 flex items-center overflow-visible">
-                              <TablePillSelect value={item.paymentType || ''} options={paymentTypes} type="paymentType" onSelect={(v) => updateExpense(item.id, 'paymentType', v)} onAddOption={(v) => updatePaymentTypes([...paymentTypes, v])} />
+                            <div style={{ width: localColumnWidths.paymentType || 180 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
+                              <TablePillSelect value={item.paymentType || ''} options={paymentTypes} type="paymentType" onSelect={(v) => updateExpense(item.id, 'paymentType', v)} onAddOption={(v) => updatePaymentTypes([...paymentTypes, v])} colors={colors} onUpdateColors={updateColors} />
                             </div>
                             
-                            <div className="w-[140px] p-2 border-r border-gray-100 flex items-center overflow-visible">
-                              <TablePillSelect value={item.paymentMethod || ''} options={paymentMethods} type="paymentMethod" onSelect={(v) => updateExpense(item.id, 'paymentMethod', v)} onAddOption={(v) => updatePaymentMethods([...paymentMethods, v])} />
+                            <div style={{ width: localColumnWidths.paymentMethod || 140 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
+                              <TablePillSelect value={item.paymentMethod || ''} options={paymentMethods} type="paymentMethod" onSelect={(v) => updateExpense(item.id, 'paymentMethod', v)} onAddOption={(v) => updatePaymentMethods([...paymentMethods, v])} colors={colors} onUpdateColors={updateColors} />
                             </div>
                             
-                            <div className="w-[130px] p-2 border-r border-gray-100 flex items-center overflow-visible">
-                              <TablePillSelect value={item.category} options={categories} type="category" onSelect={(v) => updateExpense(item.id, 'category', v)} onAddOption={(v) => updateCategories([...categories, v])} />
+                            <div style={{ width: localColumnWidths.category || 130 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
+                              <TablePillSelect value={item.category} options={categories} type="category" onSelect={(v) => updateExpense(item.id, 'category', v)} onAddOption={(v) => updateCategories([...categories, v])} colors={colors} onUpdateColors={updateColors} />
                             </div>
                             
-                            <div className="w-[180px] border-r border-gray-100 flex items-center text-gray-500">
+                            <div style={{ width: localColumnWidths.description || 180 }} className="border-r border-gray-300 flex items-center shrink-0">
                               <input type="text" value={item.description || ''} onChange={(e) => updateExpense(item.id, 'description', e.target.value)} className="w-full h-full px-2 py-2 bg-transparent outline-none focus:bg-white focus:ring-1 ring-blue-400 placeholder-gray-300" placeholder="Añadir detalle..." />
                             </div>
                             
                             {customColumns.map(col => (
-                              <div key={col.id} className="w-[150px] border-r border-gray-100 flex items-center text-gray-500">
+                              <div key={col.id} style={{ width: localColumnWidths[col.id] || 150 }} className="border-r border-gray-300 flex items-center shrink-0">
                                 <input type="text" className="w-full h-full px-2 py-2 bg-transparent outline-none focus:bg-white focus:ring-1 ring-blue-400 placeholder-gray-200" placeholder="-" />
                               </div>
                             ))}
-                            <div className="w-[50px] bg-transparent pointer-events-none"></div> {/* Spacer for trash icon */}
+                            <div className="w-[80px] bg-transparent pointer-events-none border-l border-transparent shrink-0"></div> {/* Action Spacer */}
                           </div>
                         ))}
                         
-                        <div className="flex text-[13px] text-gray-500 bg-gray-50 border-t border-gray-200 font-medium sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
-                          <div className="w-[160px] p-2 border-r border-gray-200 text-right uppercase tracking-wider text-[11px] flex items-center justify-end">SUMA</div>
-                          <div className="w-[160px] p-2 border-r border-gray-200"></div>
-                          <div className="w-[200px] p-2 border-r border-gray-200"></div>
-                          <div className="w-[130px] p-2 border-r border-gray-200 flex items-center justify-end font-mono font-bold text-gray-800 text-[14px]">{totalExpenses.toFixed(2)} US$</div>
-                          <div className="w-[180px] p-2 border-r border-gray-200"></div>
-                          <div className="w-[140px] p-2 border-r border-gray-200"></div>
-                          <div className="w-[130px] p-2 border-r border-gray-200"></div>
-                          <div className="w-[180px] p-2 border-r border-gray-200"></div>
-                          {customColumns.map(col => <div key={col.id} className="w-[150px] p-2 border-r border-gray-200"></div>)}
-                          <div className="w-[50px]"></div>
+                        <div className="flex text-[13px] text-gray-500 bg-gray-50 border-t border-gray-300 font-medium sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                          <div style={{ width: localColumnWidths.date || 160 }} className="p-2 border-r border-gray-300 text-right uppercase tracking-wider text-[11px] flex items-center justify-end shrink-0">SUMA COMPLETADOS</div>
+                          <div style={{ width: localColumnWidths.status || 160 }} className="p-2 border-r border-gray-300 shrink-0"></div>
+                          <div style={{ width: localColumnWidths.concept || 200 }} className="p-2 border-r border-gray-300 shrink-0"></div>
+                          <div style={{ width: localColumnWidths.amount || 130 }} className="p-2 border-r border-gray-300 flex items-center justify-end font-mono font-bold text-gray-800 text-[14px] shrink-0">{formatCurrency(totalExpenses)} US$</div>
+                          <div style={{ width: localColumnWidths.paymentType || 180 }} className="p-2 border-r border-gray-300 shrink-0"></div>
+                          <div style={{ width: localColumnWidths.paymentMethod || 140 }} className="p-2 border-r border-gray-300 shrink-0"></div>
+                          <div style={{ width: localColumnWidths.category || 130 }} className="p-2 border-r border-gray-300 shrink-0"></div>
+                          <div style={{ width: localColumnWidths.description || 180 }} className="p-2 border-r border-gray-300 shrink-0"></div>
+                          {customColumns.map(col => <div key={col.id} style={{ width: localColumnWidths[col.id] || 150 }} className="p-2 border-r border-gray-300 shrink-0"></div>)}
+                          <div className="w-[80px] shrink-0"></div>
                         </div>
 
                       </div>
@@ -442,13 +562,18 @@ function Tab({ label, active, onClick }: { label: string, active: boolean, onCli
   );
 }
 
-function StatCard({ title, amount, color, isTotal, onClick }: { title: string, amount: number, color: string, isTotal?: boolean, onClick?: () => void }) {
+function StatCard({ title, amount, color, isTotal, onClick, subAmount }: { title: string, amount: number, color: string, isTotal?: boolean, onClick?: () => void, subAmount?: string }) {
   return (
     <div onClick={onClick} className={`p-5 rounded-xl border shadow-[0_2px_4px_rgba(0,0,0,0.02)] flex flex-col justify-center transition-transform hover:-translate-y-0.5 duration-200 ${onClick ? 'cursor-pointer hover:shadow-md' : ''} ${isTotal ? 'bg-blue-50/50 border-blue-200 shadow-blue-100/50' : 'bg-white border-gray-200'}`}>
       <span className="text-gray-500 text-[13px] font-semibold uppercase tracking-wide mb-1.5 flex items-center justify-between">
         {title} {onClick && <Plus size={14} className="text-gray-400" />}
       </span>
-      <span className={`text-3xl font-bold tabular-nums tracking-tight ${color}`}>${amount.toFixed(2)}</span>
+      <span className={`text-3xl font-bold tabular-nums tracking-tight ${color}`}>
+        ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}
+      </span>
+      {subAmount && (
+        <span className="text-base text-gray-600 mt-1">{subAmount}</span>
+      )}
     </div>
   );
 }
@@ -456,7 +581,38 @@ function StatCard({ title, amount, color, isTotal, onClick }: { title: string, a
 // ----------------------------------------
 // Custom Select for Notion-style Pills (Portal)
 // ----------------------------------------
-function TablePillSelect({ value, options, onSelect, onAddOption, type }: { value: string, options: string[], onSelect: (v: string) => void, onAddOption: (v: string) => void, type: string }) {
+function ResizeHandle({ onResize, onSave }: { onResize: (width: number) => void, onSave: () => void }) {
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.pageX;
+    const startWidth = (e.target as HTMLElement).parentElement?.getBoundingClientRect().width || 0;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const newWidth = startWidth + (moveEvent.pageX - startX);
+      onResize(newWidth);
+    };
+
+    const onMouseUp = () => {
+      onSave();
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  };
+
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 transition-colors z-40 group"
+    >
+      <div className="absolute right-0 top-0 bottom-0 w-[1px] bg-gray-300 group-hover:bg-blue-400" />
+    </div>
+  );
+}
+
+function TablePillSelect({ value, options, type, onSelect, onAddOption, colors, onUpdateColors }: { value: string, options: string[], type: string, onSelect: (v: string) => void, onAddOption?: (v: string) => void, colors?: Record<string, string>, onUpdateColors?: (c: Record<string, string>) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [newOpt, setNewOpt] = useState("");
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
@@ -497,21 +653,43 @@ function TablePillSelect({ value, options, onSelect, onAddOption, type }: { valu
     };
   }, [isOpen]);
 
+  const NOTION_COLORS: Record<string, { bg: string, text: string }> = {
+    gray: { bg: 'bg-gray-100', text: 'text-gray-600' },
+    brown: { bg: 'bg-orange-100', text: 'text-orange-800' },
+    orange: { bg: 'bg-orange-50', text: 'text-orange-600' },
+    yellow: { bg: 'bg-yellow-50', text: 'text-yellow-700' },
+    green: { bg: 'bg-green-50', text: 'text-green-700' },
+    blue: { bg: 'bg-blue-50', text: 'text-blue-700' },
+    purple: { bg: 'bg-purple-50', text: 'text-purple-700' },
+    pink: { bg: 'bg-pink-50', text: 'text-pink-700' },
+    red: { bg: 'bg-red-50', text: 'text-red-700' },
+    black: { bg: 'bg-gray-800', text: 'text-white' },
+  };
+
   const getPillClasses = (t: string, v: string) => {
     const base = "px-2.5 py-0.5 rounded-[4px] text-[13px] font-medium inline-flex items-center gap-1.5 select-none w-max max-w-full truncate";
+    
+    // Check if custom color exists for this specific value
+    const customColorKey = `${t}:${v}`;
+    const customColor = colors?.[customColorKey];
+    
+    if (customColor && NOTION_COLORS[customColor]) {
+      const c = NOTION_COLORS[customColor];
+      return `${base} ${c.bg} ${c.text}`;
+    }
+
+    // Default fallbacks
     if (t === "status") {
-      if (v === "Completado") return `${base} bg-[var(--pill-green-bg)] text-[var(--pill-green-text)]`;
-      if (v === "Pendiente") return `${base} bg-[var(--pill-pink-bg)] text-[var(--pill-pink-text)]`;
-      return `${base} bg-[var(--pill-gray-bg)] text-[var(--pill-gray-text)]`;
+      if (v === "Completado") return `${base} bg-green-50 text-green-700`;
+      if (v === "Pendiente") return `${base} bg-pink-50 text-pink-700`;
+      return `${base} bg-gray-100 text-gray-600`;
     }
     if (t === "paymentType") {
-      if (v === "Pago mínimo") return `${base} bg-[var(--pill-brown-bg)] text-[var(--pill-brown-text)]`;
-      if (v === "Pago total") return `${base} bg-[var(--pill-green-bg)] text-[var(--pill-green-text)]`;
-      return `${base} bg-[var(--pill-gray-bg)] text-[var(--pill-gray-text)]`;
+      if (v === "Pago total") return `${base} bg-green-50 text-green-700`;
+      return `${base} bg-gray-100 text-gray-600`;
     }
-    if (t === "paymentMethod") return `${base} bg-gray-100 text-gray-600`;
     if (t === "category") return `${base} bg-gray-800 text-white`;
-    return base;
+    return `${base} bg-gray-100 text-gray-600`;
   };
 
   const handleAdd = () => {
@@ -534,13 +712,29 @@ function TablePillSelect({ value, options, onSelect, onAddOption, type }: { valu
         {options.map(opt => (
           <div 
             key={opt} 
-            onClick={() => { onSelect(opt); setIsOpen(false); }}
-            className="px-2 py-1.5 hover:bg-[#3f3f3f] rounded cursor-pointer flex items-center transition-colors"
+            className="group/item px-2 py-1 hover:bg-[#3f3f3f] rounded cursor-pointer flex items-center justify-between transition-colors"
           >
-            <span className={getPillClasses(type, opt)}>
-              {(type === "status" || type === "paymentType") && <div className="w-1.5 h-1.5 rounded-full bg-current opacity-80 shrink-0"></div>}
-              <span className="truncate">{opt}</span>
-            </span>
+            <div className="flex-1 flex items-center h-full py-1" onClick={() => { onSelect(opt); setIsOpen(false); }}>
+              <span className={getPillClasses(type, opt)}>
+                {(type === "status" || type === "paymentType") && <div className="w-1.5 h-1.5 rounded-full bg-current opacity-80 shrink-0"></div>}
+                <span className="truncate">{opt}</span>
+              </span>
+            </div>
+            
+            {onUpdateColors && (
+              <div className="hidden group-hover/item:flex items-center gap-1 ml-2 bg-[#4f4f4f] p-1 rounded border border-[#5f5f5f]">
+                {Object.keys(NOTION_COLORS).slice(0, 5).map(cName => (
+                  <button
+                    key={cName}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onUpdateColors({ ...colors, [`${type}:${opt}`]: cName });
+                    }}
+                    className={`w-3 h-3 rounded-full ${NOTION_COLORS[cName].bg} border border-white/20 hover:scale-125 transition-transform`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>

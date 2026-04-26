@@ -1,8 +1,8 @@
-export type PaymentStatus = "Completado" | "Pendiente" | "Atrasado" | "Recibido";
+export type PaymentStatus = "Completado" | "Pendiente" | "Recibido";
 export type IncomeType = "Recurrente" | "Extra" | string;
-export type ExpenseCategory = "General" | "Recurrente" | "Bancos" | "Alimentación" | "Transporte" | "Servicios" | "Ocio" | string;
-export type PaymentType = "Pago mínimo" | "Pago total" | string;
-export type PaymentMethod = "Efectivo" | "Tarjeta" | "Transferencia" | string;
+export type ExpenseCategory = "Hogar" | "Bancos" | "Familia" | "Transporte" | "Recurrente" | "KB;" | "Salud" | "Social" | "Pets" | "Pendientes" | string;
+export type PaymentType = "Pago mínimo" | "Pago total" | "Pago parcial" | "Pago extraordinario" | string;
+export type PaymentMethod = "Efectivo" | "Tarjeta" | string;
 
 export interface Income {
   id: string;
