@@ -149,6 +149,9 @@ export default function Dashboard() {
       }
       return 0;
     });
+  } else {
+    // Default: Sort by date ASC, then original order reverse (since original order is DESC by created_at)
+    currentMonthExpenses.reverse().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }
   
   const currentMonthIncomes = incomes.filter(i => {
@@ -192,6 +195,14 @@ export default function Dashboard() {
   }).reduce((acc, curr) => acc + curr.amount, 0);
 
   const accumulatedAvailable = accumulatedIncome - accumulatedExpenses;
+
+  // Total Savings (Ahorros)
+  const totalAhorros = expenses
+    .filter(e => e.status === "Completado" && e.paymentType?.toLowerCase() === "ahorro")
+    .reduce((acc, curr) => acc + curr.amount, 0) 
+    - expenses
+    .filter(e => e.status === "Completado" && e.paymentType?.toLowerCase() === "retiro de ahorro")
+    .reduce((acc, curr) => acc + curr.amount, 0);
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
@@ -346,10 +357,11 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                   <StatCard title="Ingresos Totales" amount={totalIncome} color="text-[var(--status-done)]" onClick={() => setIncomesListOpen(true)} />
                   <StatCard title="Gastos Totales" amount={totalExpenses} subAmount={`Proyectado: $${formatCurrency(projectedExpenses)}`} color="text-[var(--status-stuck)]" />
                   <StatCard title="Disponible Total" amount={accumulatedAvailable} color="text-[var(--primary)]" isTotal />
+                  <StatCard title="Ahorros Totales" amount={totalAhorros} color="text-purple-600" />
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-10">

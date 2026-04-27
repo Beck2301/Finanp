@@ -99,31 +99,36 @@ export function useFinanceData() {
       latestRecurrents.forEach(e => {
         const lastDate = new Date(e.date);
         
-        if (lastDate.getFullYear() < currentYear || (lastDate.getFullYear() === currentYear && lastDate.getMonth() < currentMonth)) {
-          const existsThisMonth = expenses.some(ex => 
-            ex.concept === e.concept && 
-            new Date(ex.date).getMonth() === currentMonth && 
-            new Date(ex.date).getFullYear() === currentYear
-          );
-          
-          if (!existsThisMonth) {
-            const d = new Date(currentYear, currentMonth + 1, 0); // Last day of current month
-            const newDay = Math.min(lastDate.getDate(), d.getDate());
-            const newDate = new Date(currentYear, currentMonth, newDay);
+        [0, 1].forEach(offset => {
+          const targetYear = currentMonth + offset > 11 ? currentYear + 1 : currentYear;
+          const targetMonth = (currentMonth + offset) % 12;
+
+          if (lastDate.getFullYear() < targetYear || (lastDate.getFullYear() === targetYear && lastDate.getMonth() < targetMonth)) {
+            const existsTargetMonth = expenses.some(ex => 
+              ex.concept === e.concept && 
+              new Date(ex.date).getMonth() === targetMonth && 
+              new Date(ex.date).getFullYear() === targetYear
+            );
             
-            toCreate.push({
-              user_id: userId,
-              concept: e.concept,
-              amount: e.amount,
-              date: newDate.toISOString().split('T')[0],
-              category: "Recurrente",
-              status: "Pendiente",
-              payment_type: e.paymentType || "Pago total",
-              payment_method: e.paymentMethod || "Efectivo",
-              description: e.description,
-            });
+            if (!existsTargetMonth) {
+              const d = new Date(targetYear, targetMonth + 1, 0); // Last day of target month
+              const newDay = Math.min(lastDate.getDate(), d.getDate());
+              const newDate = new Date(targetYear, targetMonth, newDay);
+              
+              toCreate.push({
+                user_id: userId,
+                concept: e.concept,
+                amount: e.amount,
+                date: newDate.toISOString().split('T')[0],
+                category: "Recurrente",
+                status: "Pendiente",
+                payment_type: e.paymentType || "Pago total",
+                payment_method: e.paymentMethod || "Efectivo",
+                description: e.description,
+              });
+            }
           }
-        }
+        });
       });
       
       if (toCreate.length > 0) {

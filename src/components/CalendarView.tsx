@@ -16,7 +16,7 @@ export function CalendarView({ incomes, expenses }: CalendarViewProps) {
     const incomeEvents = incomes.map(inc => ({
       id: `inc-${inc.id}`,
       title: `+ $${inc.amount} ${inc.source}`,
-      date: inc.date,
+      date: inc.date.split('T')[0],
       backgroundColor: 'var(--status-done)',
       borderColor: 'var(--status-done)',
       textColor: 'white',
@@ -26,7 +26,7 @@ export function CalendarView({ incomes, expenses }: CalendarViewProps) {
     const expenseEvents = expenses.map(exp => ({
       id: `exp-${exp.id}`,
       title: `- $${exp.amount} ${exp.concept}`,
-      date: exp.date,
+      date: exp.date.split('T')[0],
       backgroundColor: exp.status === 'Completado' ? '#9ca3af' : 'var(--status-stuck)',
       borderColor: exp.status === 'Completado' ? '#9ca3af' : 'var(--status-stuck)',
       textColor: 'white',
