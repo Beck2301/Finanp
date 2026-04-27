@@ -16,6 +16,7 @@ export function IncomeModal({ isOpen, onClose, onAdd }: IncomeModalProps) {
     amount: "",
     description: "",
     user: "Ambos",
+    status: "Completado" as PaymentStatus,
   });
 
   if (!isOpen) return null;
