@@ -96,12 +96,15 @@ export default function Dashboard() {
   }, [columnWidths]);
 
   const handleResize = (id: string, width: number) => {
-    const newWidths = { ...localColumnWidths, [id]: Math.max(50, width) };
-    setLocalColumnWidths(newWidths);
+    setLocalColumnWidths(prev => ({ ...prev, [id]: Math.max(50, width) }));
   };
 
-  const saveResize = (id: string) => {
-    updateColumnWidths(localColumnWidths);
+  const saveResize = (id: string, finalWidth: number) => {
+    setLocalColumnWidths(prev => {
+      const updated = { ...prev, [id]: Math.max(50, finalWidth) };
+      updateColumnWidths(updated);
+      return updated;
+    });
   };
 
   const [activeTab, setActiveTab] = useState<string>("resumen");
@@ -425,41 +428,41 @@ export default function Dashboard() {
                         <div style={{ width: localColumnWidths.date || 160 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium cursor-pointer hover:bg-gray-100 relative shrink-0">
                           <CalIcon size={14} /> Fecha 
                           <ArrowUpDown size={12} className="opacity-0 group-hover/header:opacity-100 transition-opacity ml-auto" />
-                          <ResizeHandle onResize={(w) => handleResize('date', w)} onSave={() => saveResize('date')} />
+                          <ResizeHandle onResize={(w) => handleResize('date', w)} onSave={(w) => saveResize('date', w)} />
                         </div>
                         <div style={{ width: localColumnWidths.status || 160 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
                           <Asterisk size={14} /> Estado
-                          <ResizeHandle onResize={(w) => handleResize('status', w)} onSave={() => saveResize('status')} />
+                          <ResizeHandle onResize={(w) => handleResize('status', w)} onSave={(w) => saveResize('status', w)} />
                         </div>
                         <div style={{ width: localColumnWidths.concept || 200 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
                           <FileText size={14} /> Concepto
-                          <ResizeHandle onResize={(w) => handleResize('concept', w)} onSave={() => saveResize('concept')} />
+                          <ResizeHandle onResize={(w) => handleResize('concept', w)} onSave={(w) => saveResize('concept', w)} />
                         </div>
                         <div style={{ width: localColumnWidths.amount || 130 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium cursor-pointer hover:bg-gray-100 relative shrink-0">
                           <Hash size={14} /> Monto 
                           <ArrowUpDown size={12} className="opacity-0 group-hover/header:opacity-100 transition-opacity ml-auto" />
-                          <ResizeHandle onResize={(w) => handleResize('amount', w)} onSave={() => saveResize('amount')} />
+                          <ResizeHandle onResize={(w) => handleResize('amount', w)} onSave={(w) => saveResize('amount', w)} />
                         </div>
                         <div style={{ width: localColumnWidths.paymentType || 180 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
                           <Asterisk size={14} /> Tipo de pago
-                          <ResizeHandle onResize={(w) => handleResize('paymentType', w)} onSave={() => saveResize('paymentType')} />
+                          <ResizeHandle onResize={(w) => handleResize('paymentType', w)} onSave={(w) => saveResize('paymentType', w)} />
                         </div>
                         <div style={{ width: localColumnWidths.paymentMethod || 140 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
                           <CreditCard size={14} /> Forma de pago
-                          <ResizeHandle onResize={(w) => handleResize('paymentMethod', w)} onSave={() => saveResize('paymentMethod')} />
+                          <ResizeHandle onResize={(w) => handleResize('paymentMethod', w)} onSave={(w) => saveResize('paymentMethod', w)} />
                         </div>
                         <div style={{ width: localColumnWidths.category || 130 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
                           <Building size={14} /> Categoría
-                          <ResizeHandle onResize={(w) => handleResize('category', w)} onSave={() => saveResize('category')} />
+                          <ResizeHandle onResize={(w) => handleResize('category', w)} onSave={(w) => saveResize('category', w)} />
                         </div>
                         <div style={{ width: localColumnWidths.description || 180 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
                           <AlignLeft size={14} /> Detalle
-                          <ResizeHandle onResize={(w) => handleResize('description', w)} onSave={() => saveResize('description')} />
+                          <ResizeHandle onResize={(w) => handleResize('description', w)} onSave={(w) => saveResize('description', w)} />
                         </div>
                         {customColumns.map(col => (
                           <div key={col.id} style={{ width: localColumnWidths[col.id] || 150 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium bg-gray-50 relative shrink-0">
                             {col.name}
-                            <ResizeHandle onResize={(w) => handleResize(col.id, w)} onSave={() => saveResize(col.id)} />
+                            <ResizeHandle onResize={(w) => handleResize(col.id, w)} onSave={(w) => saveResize(col.id, w)} />
                           </div>
                         ))}
                         <div onClick={addCustomColumn} className="w-[80px] p-2 flex items-center justify-center font-medium cursor-pointer hover:bg-gray-200 text-gray-400 shrink-0" title="Añadir columna"><Plus size={16} /></div>
@@ -581,19 +584,26 @@ function StatCard({ title, amount, color, isTotal, onClick, subAmount }: { title
 // ----------------------------------------
 // Custom Select for Notion-style Pills (Portal)
 // ----------------------------------------
-function ResizeHandle({ onResize, onSave }: { onResize: (width: number) => void, onSave: () => void }) {
+function ResizeHandle({ onResize, onSave }: { onResize: (width: number) => void, onSave: (finalWidth: number) => void }) {
   const onMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     const startX = e.pageX;
-    const startWidth = (e.target as HTMLElement).parentElement?.getBoundingClientRect().width || 0;
+    const parent = (e.currentTarget as HTMLElement).parentElement;
+    if (!parent) return;
+    const startWidth = parent.getBoundingClientRect().width;
+    let currentWidth = startWidth;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      const newWidth = startWidth + (moveEvent.pageX - startX);
-      onResize(newWidth);
+      // Usar requestAnimationFrame para evitar re-renders excesivos
+      requestAnimationFrame(() => {
+        currentWidth = startWidth + (moveEvent.pageX - startX);
+        onResize(currentWidth);
+      });
     };
 
     const onMouseUp = () => {
-      onSave();
+      onSave(currentWidth);
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     };
