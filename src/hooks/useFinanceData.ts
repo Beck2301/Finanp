@@ -6,7 +6,7 @@ import type { Expense, Income } from "@/types/finance";
 
 const DEFAULT_PREFS = {
   categories: ["Hogar", "Bancos", "Familia", "Transporte", "Recurrente", "KB;", "Salud", "Social", "Pets", "Pendientes"],
-  payment_types: ["Pago mínimo", "Pago total", "Pago parcial", "Pago extraordinario"],
+  payment_types: ["Pago mínimo", "Pago total", "Pago parcial", "Pago extraordinario", "Ahorro"],
   payment_methods: ["Efectivo", "Tarjeta"],
   statuses: ["Completado", "Pendiente"],
   colors: {} as Record<string, string>,
@@ -60,7 +60,13 @@ export function useFinanceData() {
     }
     if (prefRes.data) {
       setCategories(prefRes.data.categories ?? DEFAULT_PREFS.categories);
-      setPaymentTypes(prefRes.data.payment_types ?? DEFAULT_PREFS.payment_types);
+      const loadedPaymentTypes = prefRes.data.payment_types ?? DEFAULT_PREFS.payment_types;
+      const needsAhorro = !loadedPaymentTypes.includes("Ahorro");
+      const mergedPaymentTypes = needsAhorro ? [...loadedPaymentTypes, "Ahorro"] : loadedPaymentTypes;
+      setPaymentTypes(mergedPaymentTypes);
+      if (needsAhorro) {
+        await supabase.from("user_preferences").update({ payment_types: mergedPaymentTypes }).eq("user_id", userId);
+      }
       setPaymentMethods(prefRes.data.payment_methods ?? DEFAULT_PREFS.payment_methods);
       setStatuses(prefRes.data.statuses ?? DEFAULT_PREFS.statuses);
       setColors(prefRes.data.colors ?? DEFAULT_PREFS.colors);

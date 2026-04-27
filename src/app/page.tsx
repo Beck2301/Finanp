@@ -637,19 +637,27 @@ function ResizeHandle({ onResize, onSave }: { onResize: (width: number) => void,
 function TablePillSelect({ value, options, type, onSelect, onAddOption, onDeleteOption, colors, onUpdateColors }: { value: string, options: string[], type: string, onSelect: (v: string) => void, onAddOption?: (v: string) => void, onDeleteOption?: (v: string) => void, colors?: Record<string, string>, onUpdateColors?: (c: Record<string, string>) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [newOpt, setNewOpt] = useState("");
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, maxHeight: 300 });
   const buttonRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const toggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setCoords({ 
-        top: rect.bottom + 4, 
-        left: rect.left, 
-        width: rect.width > 220 ? rect.width : 220 
-      });
+          const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom - 12;
+      const spaceAbove = rect.top - 12;
+      const dropWidth = rect.width > 220 ? rect.width : 220;
+      let top = rect.bottom + 4;
+      let maxH = Math.min(spaceBelow, 320);
+
+      if (spaceBelow < 180 && spaceAbove > spaceBelow) {
+        // Show above
+        maxH = Math.min(spaceAbove, 320);
+        top = rect.top - 4 - maxH;
+      }
+
+      setCoords({ top, left: rect.left, width: dropWidth, maxHeight: maxH });
     }
     setIsOpen(!isOpen);
   };
@@ -661,7 +669,11 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, onDelete
         setIsOpen(false);
       }
     }
-    const handleScroll = () => setIsOpen(false);
+    const handleScroll = (e: Event) => {
+      // Only close if the scroll is outside the dropdown panel
+      if (dropdownRef.current && dropdownRef.current.contains(e.target as Node)) return;
+      setIsOpen(false);
+    };
 
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
@@ -762,7 +774,7 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, onDelete
       className="fixed bg-[#2d2d2d] rounded-lg shadow-2xl border border-[#3f3f3f] z-[99999] p-1.5 animate-in fade-in zoom-in-95 duration-100"
     >
       <div className="px-2 py-1 mb-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider select-none">Seleccionar opción</div>
-      <div className="max-h-48 overflow-y-auto no-scrollbar space-y-0.5 mb-1.5">
+      <div style={{ maxHeight: coords.maxHeight - 80 }} className="overflow-y-auto overflow-x-hidden space-y-0.5 mb-1.5 scrollbar-thin">
         {options.map(opt => (
           <div 
             key={opt} 
@@ -786,7 +798,7 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, onDelete
                   }}
                   onClick={(e) => e.stopPropagation()}
                   className="w-5 h-5 cursor-pointer border-none bg-transparent p-0 flex-shrink-0"
-                  title="Cambiar color de fondo"
+                  title="Fondo"
                 />
                 <input 
                   type="color"
@@ -796,8 +808,8 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, onDelete
                     onUpdateColors({ ...colors, [`${type}:${opt}`]: `${bg}|${e.target.value}` });
                   }}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-5 h-5 cursor-pointer border-none bg-transparent p-0 flex-shrink-0 rounded-full"
-                  title="Cambiar color de texto"
+                  className="w-5 h-5 cursor-pointer border-none bg-transparent p-0 flex-shrink-0"
+                  title="Texto"
                 />
                 {onDeleteOption && (
                   <button
@@ -807,7 +819,7 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, onDelete
                         onDeleteOption(opt);
                       }
                     }}
-                    className="text-gray-400 hover:text-red-400 transition-colors ml-1"
+                    className="text-gray-400 hover:text-red-400 transition-colors"
                     title="Eliminar opción"
                   >
                     <Trash2 size={13} />
