@@ -208,7 +208,10 @@ export function useFinanceData() {
   // ── PREFERENCES ──────────────────────────────────
   const savePrefs = useCallback(async (patch: Partial<typeof DEFAULT_PREFS>) => {
     if (!userId) return;
-    await supabase.from("user_preferences").upsert({ user_id: userId, ...patch, updated_at: new Date().toISOString() });
+    await supabase.from("user_preferences").upsert(
+      { user_id: userId, ...patch, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
   }, [userId]);
 
   const updateCategories = useCallback((cats: string[]) => {
