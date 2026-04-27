@@ -332,7 +332,7 @@ export default function Dashboard() {
             ) : activeTab === 'stats' ? (
               <StatsView expenses={expenses} incomes={incomes} />
             ) : activeTab === 'presupuesto' ? (
-              <BudgetView available={available} />
+              <BudgetView available={accumulatedAvailable} />
             ) : (
               <>
                 <div className="flex flex-wrap items-center justify-between mb-8 gap-4">
