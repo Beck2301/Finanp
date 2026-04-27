@@ -46,7 +46,7 @@ export default function Dashboard() {
     expenses, incomes,
     categories, paymentTypes, paymentMethods, statuses,
     colors, savedFilters, columnWidths,
-    addExpense, updateExpense: updateExpenseDb, updateExpenseBulk, deleteExpense,
+    addExpense, addExpensesBulk, updateExpense: updateExpenseDb, updateExpenseBulk, deleteExpense,
     addIncome, updateIncome: updateIncomeDb, deleteIncome,
     updateCategories, updatePaymentTypes, updatePaymentMethods, updateStatuses,
     updateColors, updateSavedFilters, updateColumnWidths,
@@ -200,8 +200,8 @@ export default function Dashboard() {
   const totalAhorros = expenses
     .filter(e => e.status === "Completado" && e.paymentType?.toLowerCase() === "ahorro")
     .reduce((acc, curr) => acc + curr.amount, 0) 
-    - expenses
-    .filter(e => e.status === "Completado" && e.paymentType?.toLowerCase() === "retiro de ahorro")
+    - incomes
+    .filter(i => i.type?.toLowerCase() === "retiro de ahorro")
     .reduce((acc, curr) => acc + curr.amount, 0);
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
@@ -269,7 +269,7 @@ export default function Dashboard() {
       <CustomColumnModal isOpen={isColumnModalOpen} onClose={() => setColumnModalOpen(false)} onAdd={(name) => setCustomColumns([...customColumns, { id: `col_${Date.now()}`, name }])} />
       <IncomeModal isOpen={isIncomeModalOpen} onClose={() => setIncomeModalOpen(false)} onAdd={(i) => addIncome(i)} />
       <IncomesListModal isOpen={isIncomesListOpen} onClose={() => setIncomesListOpen(false)} incomes={incomes} onUpdate={updateIncomeDb} onDelete={deleteIncome} />
-      <ExpenseModal isOpen={isExpenseModalOpen} onClose={() => setExpenseModalOpen(false)} onAdd={(e) => addExpense(e)} categories={categories} />
+      <ExpenseModal isOpen={isExpenseModalOpen} onClose={() => setExpenseModalOpen(false)} onAdd={(e) => addExpense(e)} onAddBulk={(es) => addExpensesBulk(es)} categories={categories} />
       <EditExpenseModal isOpen={!!editingExpense} onClose={() => setEditingExpense(null)} expense={editingExpense} onUpdate={updateExpenseBulk} categories={categories} />
       <CategoryModal isOpen={isCategoryModalOpen} onClose={() => setCategoryModalOpen(false)} categories={categories} setCategories={updateCategories} />
       {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
@@ -509,7 +509,7 @@ export default function Dashboard() {
                             </div>
                             
                             <div style={{ width: localColumnWidths.paymentType || 180 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
-                              <TablePillSelect value={item.paymentType || ''} options={paymentTypes} type="paymentType" onSelect={(v) => updateExpense(item.id, 'paymentType', v)} onAddOption={(v) => updatePaymentTypes([...paymentTypes, v])} onDeleteOption={(v) => updatePaymentTypes(paymentTypes.filter(s => s !== v))} colors={colors} onUpdateColors={updateColors} />
+                              <TablePillSelect value={item.paymentType || ''} options={paymentTypes} type="paymentType" onSelect={(v) => updateExpense(item.id, 'paymentType', v)} onAddOption={(v) => updatePaymentTypes([...paymentTypes, v])} onDeleteOption={(v) => { if(v.toLowerCase() === 'ahorro' || v.toLowerCase() === 'retiro de ahorro') { alert('Esta opción es obligatoria para el funcionamiento de tus ahorros y no se puede borrar.'); return; } updatePaymentTypes(paymentTypes.filter(s => s !== v)); }} colors={colors} onUpdateColors={updateColors} />
                             </div>
                             
                             <div style={{ width: localColumnWidths.paymentMethod || 140 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
@@ -517,7 +517,7 @@ export default function Dashboard() {
                             </div>
                             
                             <div style={{ width: localColumnWidths.category || 130 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
-                              <TablePillSelect value={item.category} options={categories} type="category" onSelect={(v) => updateExpense(item.id, 'category', v)} onAddOption={(v) => updateCategories([...categories, v])} onDeleteOption={(v) => updateCategories(categories.filter(s => s !== v))} colors={colors} onUpdateColors={updateColors} />
+                              <TablePillSelect value={item.category} options={categories} type="category" onSelect={(v) => updateExpense(item.id, 'category', v)} onAddOption={(v) => updateCategories([...categories, v])} onDeleteOption={(v) => { if(v.toLowerCase() === 'ahorro') { alert('Esta opción es obligatoria para el funcionamiento de tus ahorros y no se puede borrar.'); return; } updateCategories(categories.filter(s => s !== v)); }} colors={colors} onUpdateColors={updateColors} />
                             </div>
                             
                             <div style={{ width: localColumnWidths.description || 180 }} className="border-r border-gray-300 flex items-center shrink-0">

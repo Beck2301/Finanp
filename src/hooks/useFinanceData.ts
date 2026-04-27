@@ -74,74 +74,6 @@ export function useFinanceData() {
     setLoading(false);
   }, [userId]);
 
-  // ── AUTO-DUPLICATE RECURRENT EXPENSES ─────────────
-  useEffect(() => {
-    if (!userId || expenses.length === 0) return;
-    
-    if (sessionStorage.getItem('recurrentChecked_v2')) return;
-    
-    const checkAndDuplicate = async () => {
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      
-      const recurrentExpenses = expenses.filter(e => e.category === "Recurrente");
-      
-      const latestRecurrents = new Map<string, Expense>();
-      recurrentExpenses.forEach(e => {
-        const existing = latestRecurrents.get(e.concept);
-        if (!existing || new Date(e.date) > new Date(existing.date)) {
-          latestRecurrents.set(e.concept, e);
-        }
-      });
-      
-      const toCreate: any[] = [];
-      latestRecurrents.forEach(e => {
-        const lastDate = new Date(e.date);
-        
-        [0, 1].forEach(offset => {
-          const targetYear = currentMonth + offset > 11 ? currentYear + 1 : currentYear;
-          const targetMonth = (currentMonth + offset) % 12;
-
-          if (lastDate.getFullYear() < targetYear || (lastDate.getFullYear() === targetYear && lastDate.getMonth() < targetMonth)) {
-            const existsTargetMonth = expenses.some(ex => 
-              ex.concept === e.concept && 
-              new Date(ex.date).getMonth() === targetMonth && 
-              new Date(ex.date).getFullYear() === targetYear
-            );
-            
-            if (!existsTargetMonth) {
-              const d = new Date(targetYear, targetMonth + 1, 0); // Last day of target month
-              const newDay = Math.min(lastDate.getDate(), d.getDate());
-              const newDate = new Date(targetYear, targetMonth, newDay);
-              
-              toCreate.push({
-                user_id: userId,
-                concept: e.concept,
-                amount: e.amount,
-                date: newDate.toISOString().split('T')[0],
-                category: "Recurrente",
-                status: "Pendiente",
-                payment_type: e.paymentType || "Pago total",
-                payment_method: e.paymentMethod || "Efectivo",
-                description: e.description,
-              });
-            }
-          }
-        });
-      });
-      
-      if (toCreate.length > 0) {
-        await supabase.from("expenses").insert(toCreate);
-        loadAll(); // Reload everything so they appear
-      }
-      
-      sessionStorage.setItem('recurrentChecked_v2', 'true');
-    };
-    
-    checkAndDuplicate();
-  }, [expenses, userId, loadAll, supabase]);
-
   // ── EXPENSES ──────────────────────────────────────
   const addExpense = useCallback(async (expense: Omit<Expense, "id">) => {
     if (!userId) return;
@@ -157,6 +89,27 @@ export function useFinanceData() {
       description: expense.description,
     }).select().single();
     if (data) setExpenses(prev => [mapExpense(data), ...prev]);
+  }, [userId]);
+
+  const addExpensesBulk = useCallback(async (expensesList: Omit<Expense, "id">[]) => {
+    if (!userId || expensesList.length === 0) return;
+    const toInsert = expensesList.map(exp => ({
+      user_id: userId,
+      concept: exp.concept,
+      amount: exp.amount,
+      date: exp.date,
+      category: exp.category,
+      status: exp.status,
+      payment_type: exp.paymentType,
+      payment_method: exp.paymentMethod,
+      description: exp.description,
+    }));
+
+    const { data, error } = await supabase.from("expenses").insert(toInsert).select();
+    if (data) {
+      const newItems = data.map(mapExpense);
+      setExpenses(prev => [...newItems, ...prev]);
+    }
   }, [userId]);
 
   const updateExpense = useCallback(async (id: string, field: keyof Expense, value: any) => {
@@ -260,7 +213,7 @@ export function useFinanceData() {
     expenses, incomes,
     categories, paymentTypes, paymentMethods, statuses,
     colors, savedFilters, columnWidths,
-    addExpense, updateExpense, updateExpenseBulk, deleteExpense,
+    addExpense, addExpensesBulk, updateExpense, updateExpenseBulk, deleteExpense,
     addIncome, updateIncome, deleteIncome,
     updateCategories, updatePaymentTypes, updatePaymentMethods, updateStatuses,
     updateColors, updateSavedFilters, updateColumnWidths,

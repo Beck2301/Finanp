@@ -88,6 +88,7 @@ export function IncomeModal({ isOpen, onClose, onAdd }: IncomeModalProps) {
               >
                 <option value="Recurrente">Recurrente</option>
                 <option value="Extra">Extra</option>
+                <option value="Retiro de ahorro">Retiro de ahorro</option>
               </select>
             </div>
           </div>
@@ -116,10 +117,12 @@ interface ExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (expense: Omit<Expense, "id">) => void;
+  onAddBulk?: (expenses: Omit<Expense, "id">[]) => void;
   categories: string[];
 }
 
-export function ExpenseModal({ isOpen, onClose, onAdd, categories }: ExpenseModalProps) {
+export function ExpenseModal({ isOpen, onClose, onAdd, onAddBulk, categories }: ExpenseModalProps) {
+  const [recurrenceMonths, setRecurrenceMonths] = useState(1);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     category: "General" as ExpenseCategory,
@@ -136,10 +139,37 @@ export function ExpenseModal({ isOpen, onClose, onAdd, categories }: ExpenseModa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
-      ...formData,
-      amount: parseFloat(formData.amount) || 0,
+    if (formData.category === "Recurrente" && recurrenceMonths > 1) {
+      const expensesToCreate = [];
+      const baseDate = new Date(formData.date + "T12:00:00");
+      for (let i = 0; i < recurrenceMonths; i++) {
+        const nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, baseDate.getDate());
+        const formattedDate = nextDate.toISOString().split('T')[0];
+        expensesToCreate.push({ 
+          ...formData, 
+          amount: parseFloat(formData.amount) || 0,
+          date: formattedDate, 
+          status: i === 0 ? formData.status : "Pendiente" 
+        });
+      }
+      if (onAddBulk) onAddBulk(expensesToCreate);
+      else expensesToCreate.forEach(ex => onAdd(ex));
+    } else {
+      onAdd({ ...formData, amount: parseFloat(formData.amount) || 0 });
+    }
+    
+    setFormData({
+      concept: "",
+      amount: "",
+      date: new Date().toISOString().split('T')[0],
+      category: categories[0] || "General",
+      status: "Pendiente" as PaymentStatus,
+      paymentType: "Pago total",
+      paymentMethod: "Efectivo",
+      user: "Ambos",
+      description: ""
     });
+    setRecurrenceMonths(1);
     onClose();
   };
 
@@ -177,6 +207,12 @@ export function ExpenseModal({ isOpen, onClose, onAdd, categories }: ExpenseModa
                 {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </div>
+            {formData.category === "Recurrente" && (
+              <div className="col-span-2 sm:col-span-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5 text-blue-600">Meses a generar</label>
+                <input type="number" min="1" max="60" value={recurrenceMonths} onChange={e => setRecurrenceMonths(parseInt(e.target.value) || 1)} className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none text-sm bg-blue-50" title="Cantidad de meses a generar (ej. 12)" />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Estado</label>
               <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as PaymentStatus})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm bg-white">
@@ -193,6 +229,9 @@ export function ExpenseModal({ isOpen, onClose, onAdd, categories }: ExpenseModa
               <select value={formData.paymentType} onChange={e => setFormData({...formData, paymentType: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm bg-white">
                 <option value="Pago total">Pago total</option>
                 <option value="Pago mínimo">Pago mínimo</option>
+                <option value="Pago parcial">Pago parcial</option>
+                <option value="Pago extraordinario">Pago extraordinario</option>
+                <option value="Ahorro">Ahorro</option>
               </select>
             </div>
             <div>
@@ -442,25 +481,28 @@ export function IncomesListModal({ isOpen, onClose, incomes, onUpdate, onDelete 
             <p className="text-center text-gray-500 py-8">No hay ingresos registrados.</p>
           ) : (
             incomes.map(inc => (
-              <div key={inc.id} className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shadow-sm">
-                <div className="flex-1 min-w-0 w-full">
-                  <div className="flex items-center gap-2 mb-2">
-                    <input type="text" value={inc.source} onChange={e => onUpdate(inc.id, { source: e.target.value })} className="font-semibold text-gray-800 bg-transparent outline-none border-b border-transparent focus:border-blue-400 focus:bg-gray-50 px-1 py-0.5 rounded truncate w-full" />
-                    <select value={inc.type} onChange={e => onUpdate(inc.id, { type: e.target.value as IncomeType })} className="px-2 py-0.5 rounded text-[11px] font-bold uppercase bg-blue-100 text-blue-700 outline-none border-none">
-                      <option value="Extra">EXTRA</option>
-                      <option value="Recurrente">RECURRENTE</option>
-                    </select>
+              <div key={inc.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <input type="text" value={inc.source} onChange={e => onUpdate(inc.id, { source: e.target.value })} className="font-semibold text-gray-800 text-base sm:text-lg bg-transparent outline-none border-b border-transparent focus:border-blue-400 focus:bg-gray-50 px-1 py-0.5 rounded flex-1 min-w-[120px]" />
+                      <select value={inc.type} onChange={e => onUpdate(inc.id, { type: e.target.value as IncomeType })} className="px-2 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 outline-none cursor-pointer border border-transparent focus:ring-2 focus:ring-blue-400">
+                        <option value="Extra">EXTRA</option>
+                        <option value="Recurrente">RECURRENTE</option>
+                        <option value="Retiro de ahorro">RETIRO DE AHORRO</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 px-1">
+                      <input type="date" value={inc.date} onChange={e => onUpdate(inc.id, { date: e.target.value })} className="bg-transparent outline-none focus:text-blue-600 cursor-pointer" />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-500 px-1">
-                    <input type="date" value={inc.date} onChange={e => onUpdate(inc.id, { date: e.target.value })} className="bg-transparent outline-none focus:text-blue-600" />
+                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-5 border-t sm:border-0 pt-3 sm:pt-0 border-gray-100 w-full sm:w-auto">
+                    <div className="flex items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                      <span className="text-gray-400 font-medium mr-1">$</span>
+                      <input type="number" step="0.01" value={inc.amount} onChange={e => onUpdate(inc.id, { amount: parseFloat(e.target.value) || 0 })} className="w-24 sm:w-28 font-bold text-gray-800 text-right text-base sm:text-lg bg-transparent outline-none border-b border-transparent focus:border-blue-400 px-1 py-0.5 rounded tabular-nums" />
+                    </div>
+                    <button onClick={() => onDelete(inc.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100" title="Eliminar ingreso"><Trash2 size={18} /></button>
                   </div>
-                </div>
-                <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto shrink-0 border-t sm:border-0 pt-3 sm:pt-0 border-gray-100">
-                  <div className="flex items-center">
-                    <span className="text-gray-500 font-medium mr-1">$</span>
-                    <input type="number" step="0.01" value={inc.amount} onChange={e => onUpdate(inc.id, { amount: parseFloat(e.target.value) || 0 })} className="w-24 font-bold text-gray-800 text-right bg-transparent outline-none border-b border-transparent focus:border-blue-400 focus:bg-gray-50 px-1 py-0.5 rounded tabular-nums" />
-                  </div>
-                  <button onClick={() => onDelete(inc.id)} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar ingreso"><Trash2 size={18} /></button>
                 </div>
               </div>
             ))
