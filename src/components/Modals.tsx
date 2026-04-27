@@ -354,7 +354,8 @@ export function CustomColumnModal({ isOpen, onClose, onAdd }: { isOpen: boolean,
 }
 
 // Edit Expense Modal
-export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, categories }: { isOpen: boolean, onClose: () => void, expense: Expense | null, onUpdate: (id: string, updates: Partial<Expense>) => void, categories: string[] }) {
+export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, onAddBulk, categories }: { isOpen: boolean, onClose: () => void, expense: Expense | null, onUpdate: (id: string, updates: Partial<Expense>) => void, onAddBulk?: (expenses: Omit<Expense, "id">[]) => void, categories: string[] }) {
+  const [recurrenceMonths, setRecurrenceMonths] = useState(1);
   const [formData, setFormData] = useState({
     date: "",
     category: "General" as ExpenseCategory,
@@ -387,7 +388,32 @@ export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, categorie
       ...formData,
       amount: parseFloat(formData.amount) || 0,
     });
+
+    if (formData.category === "Recurrente" && recurrenceMonths > 1 && onAddBulk) {
+      const bulkExpenses: Omit<Expense, "id">[] = [];
+      const baseDate = new Date(formData.date + 'T12:00:00'); 
+      
+      for (let i = 1; i < recurrenceMonths; i++) {
+        const nextDate = new Date(baseDate);
+        nextDate.setMonth(nextDate.getMonth() + i);
+        
+        bulkExpenses.push({
+          concept: formData.concept,
+          amount: parseFloat(formData.amount) || 0,
+          date: nextDate.toISOString().split('T')[0],
+          category: formData.category,
+          status: "Pendiente",
+          description: formData.description,
+          paymentType: formData.paymentType,
+          paymentMethod: formData.paymentMethod,
+          user: expense.user
+        });
+      }
+      onAddBulk(bulkExpenses);
+    }
+
     setFormData({ date: "", category: "General", concept: "", amount: "", description: "", status: "Completado", paymentType: "Pago total", paymentMethod: "Efectivo" });
+    setRecurrenceMonths(1);
     onClose();
   };
 
@@ -425,6 +451,12 @@ export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, categorie
                 {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </div>
+            {formData.category === "Recurrente" && (
+              <div className="col-span-2 sm:col-span-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5 text-blue-600">Generar meses adicionales</label>
+                <input type="number" min="1" max="60" value={recurrenceMonths} onChange={e => setRecurrenceMonths(parseInt(e.target.value) || 1)} className="w-full px-3 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none text-sm bg-blue-50" title="Generar más meses a partir de esta fecha" />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Estado</label>
               <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as PaymentStatus})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[var(--primary)] outline-none text-sm bg-white">
