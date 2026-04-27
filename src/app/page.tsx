@@ -494,7 +494,7 @@ export default function Dashboard() {
                             </div>
                             
                             <div style={{ width: localColumnWidths.status || 160 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
-                              <TablePillSelect value={item.status} options={statuses} type="status" onSelect={(v) => updateExpense(item.id, 'status', v)} onAddOption={(v) => updateStatuses([...statuses, v])} colors={colors} onUpdateColors={updateColors} />
+                              <TablePillSelect value={item.status} options={statuses} type="status" onSelect={(v) => updateExpense(item.id, 'status', v)} onAddOption={(v) => updateStatuses([...statuses, v])} onDeleteOption={(v) => updateStatuses(statuses.filter(s => s !== v))} colors={colors} onUpdateColors={updateColors} />
                             </div>
                             
                             <div style={{ width: localColumnWidths.concept || 200 }} className="border-r border-gray-300 flex items-center gap-2 font-medium shrink-0">
@@ -509,15 +509,15 @@ export default function Dashboard() {
                             </div>
                             
                             <div style={{ width: localColumnWidths.paymentType || 180 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
-                              <TablePillSelect value={item.paymentType || ''} options={paymentTypes} type="paymentType" onSelect={(v) => updateExpense(item.id, 'paymentType', v)} onAddOption={(v) => updatePaymentTypes([...paymentTypes, v])} colors={colors} onUpdateColors={updateColors} />
+                              <TablePillSelect value={item.paymentType || ''} options={paymentTypes} type="paymentType" onSelect={(v) => updateExpense(item.id, 'paymentType', v)} onAddOption={(v) => updatePaymentTypes([...paymentTypes, v])} onDeleteOption={(v) => updatePaymentTypes(paymentTypes.filter(s => s !== v))} colors={colors} onUpdateColors={updateColors} />
                             </div>
                             
                             <div style={{ width: localColumnWidths.paymentMethod || 140 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
-                              <TablePillSelect value={item.paymentMethod || ''} options={paymentMethods} type="paymentMethod" onSelect={(v) => updateExpense(item.id, 'paymentMethod', v)} onAddOption={(v) => updatePaymentMethods([...paymentMethods, v])} colors={colors} onUpdateColors={updateColors} />
+                              <TablePillSelect value={item.paymentMethod || ''} options={paymentMethods} type="paymentMethod" onSelect={(v) => updateExpense(item.id, 'paymentMethod', v)} onAddOption={(v) => updatePaymentMethods([...paymentMethods, v])} onDeleteOption={(v) => updatePaymentMethods(paymentMethods.filter(s => s !== v))} colors={colors} onUpdateColors={updateColors} />
                             </div>
                             
                             <div style={{ width: localColumnWidths.category || 130 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
-                              <TablePillSelect value={item.category} options={categories} type="category" onSelect={(v) => updateExpense(item.id, 'category', v)} onAddOption={(v) => updateCategories([...categories, v])} colors={colors} onUpdateColors={updateColors} />
+                              <TablePillSelect value={item.category} options={categories} type="category" onSelect={(v) => updateExpense(item.id, 'category', v)} onAddOption={(v) => updateCategories([...categories, v])} onDeleteOption={(v) => updateCategories(categories.filter(s => s !== v))} colors={colors} onUpdateColors={updateColors} />
                             </div>
                             
                             <div style={{ width: localColumnWidths.description || 180 }} className="border-r border-gray-300 flex items-center shrink-0">
@@ -634,7 +634,7 @@ function ResizeHandle({ onResize, onSave }: { onResize: (width: number) => void,
   );
 }
 
-function TablePillSelect({ value, options, type, onSelect, onAddOption, colors, onUpdateColors }: { value: string, options: string[], type: string, onSelect: (v: string) => void, onAddOption?: (v: string) => void, colors?: Record<string, string>, onUpdateColors?: (c: Record<string, string>) => void }) {
+function TablePillSelect({ value, options, type, onSelect, onAddOption, onDeleteOption, colors, onUpdateColors }: { value: string, options: string[], type: string, onSelect: (v: string) => void, onAddOption?: (v: string) => void, onDeleteOption?: (v: string) => void, colors?: Record<string, string>, onUpdateColors?: (c: Record<string, string>) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [newOpt, setNewOpt] = useState("");
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
@@ -714,6 +714,24 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, colors, 
     return `${base} bg-gray-100 text-gray-600`;
   };
 
+  const getContrastYIQ = (hexcolor: string) => {
+    if (!hexcolor || !hexcolor.startsWith('#')) return 'white';
+    const hex = hexcolor.replace("#", "");
+    const r = parseInt(hex.substring(0, 2), 16) || 0;
+    const g = parseInt(hex.substring(2, 2), 16) || 0;
+    const b = parseInt(hex.substring(4, 2), 16) || 0;
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? 'black' : 'white';
+  };
+
+  const getPillStyle = (t: string, v: string) => {
+    const customColor = colors?.[`${t}:${v}`];
+    if (customColor && !NOTION_COLORS[customColor]) {
+      return { backgroundColor: customColor, color: getContrastYIQ(customColor) };
+    }
+    return {};
+  };
+
   const handleAdd = () => {
     if (newOpt.trim() && !options.includes(newOpt.trim())) {
       onAddOption(newOpt.trim());
@@ -737,24 +755,38 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, colors, 
             className="group/item px-2 py-1 hover:bg-[#3f3f3f] rounded cursor-pointer flex items-center justify-between transition-colors"
           >
             <div className="flex-1 flex items-center h-full py-1" onClick={() => { onSelect(opt); setIsOpen(false); }}>
-              <span className={getPillClasses(type, opt)}>
+              <span className={getPillClasses(type, opt)} style={getPillStyle(type, opt)}>
                 {(type === "status" || type === "paymentType") && <div className="w-1.5 h-1.5 rounded-full bg-current opacity-80 shrink-0"></div>}
                 <span className="truncate">{opt}</span>
               </span>
             </div>
             
             {onUpdateColors && (
-              <div className="hidden group-hover/item:flex items-center gap-1 ml-2 bg-[#4f4f4f] p-1 rounded border border-[#5f5f5f]">
-                {Object.keys(NOTION_COLORS).slice(0, 5).map(cName => (
+              <div className="hidden group-hover/item:flex items-center gap-2 ml-2 bg-[#4f4f4f] px-1.5 py-1 rounded border border-[#5f5f5f]">
+                <input 
+                  type="color"
+                  value={colors?.[`${type}:${opt}`] && !NOTION_COLORS[colors[`${type}:${opt}`]] ? colors[`${type}:${opt}`] : "#808080"}
+                  onChange={(e) => {
+                    onUpdateColors({ ...colors, [`${type}:${opt}`]: e.target.value });
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-5 h-5 cursor-pointer border-none bg-transparent p-0 flex-shrink-0"
+                  title="Cambiar color personalizado"
+                />
+                {onDeleteOption && (
                   <button
-                    key={cName}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onUpdateColors({ ...colors, [`${type}:${opt}`]: cName });
+                      if (confirm(`¿Seguro que deseas eliminar la opción '${opt}'?`)) {
+                        onDeleteOption(opt);
+                      }
                     }}
-                    className={`w-3 h-3 rounded-full ${NOTION_COLORS[cName].bg} border border-white/20 hover:scale-125 transition-transform`}
-                  />
-                ))}
+                    className="text-gray-400 hover:text-red-400 transition-colors ml-1"
+                    title="Eliminar opción"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -785,7 +817,7 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, colors, 
         className={`w-full h-full cursor-pointer hover:bg-gray-100 p-1.5 rounded-md transition-colors flex items-center ${isOpen ? 'ring-1 ring-blue-400 bg-blue-50/50' : ''}`}
       >
         {value ? (
-          <span className={getPillClasses(type, value)}>
+          <span className={getPillClasses(type, value)} style={getPillStyle(type, value)}>
             {(type === "status" || type === "paymentType") && <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${value.includes('total') || value === 'Completado' ? 'bg-current opacity-80' : 'bg-current opacity-80'}`}></div>}
             <span className="truncate">{value}</span>
           </span>
