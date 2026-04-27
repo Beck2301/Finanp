@@ -715,21 +715,35 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, onDelete
   };
 
   const getContrastYIQ = (hexcolor: string) => {
-    if (!hexcolor || !hexcolor.startsWith('#')) return 'white';
+    if (!hexcolor || !hexcolor.startsWith('#')) return '#ffffff';
     const hex = hexcolor.replace("#", "");
     const r = parseInt(hex.substring(0, 2), 16) || 0;
     const g = parseInt(hex.substring(2, 2), 16) || 0;
     const b = parseInt(hex.substring(4, 2), 16) || 0;
     const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    return (yiq >= 128) ? 'black' : 'white';
+    return (yiq >= 128) ? '#000000' : '#ffffff';
   };
 
   const getPillStyle = (t: string, v: string) => {
     const customColor = colors?.[`${t}:${v}`];
     if (customColor && !NOTION_COLORS[customColor]) {
+      if (customColor.includes('|')) {
+        const [bg, text] = customColor.split('|');
+        return { backgroundColor: bg, color: text };
+      }
       return { backgroundColor: customColor, color: getContrastYIQ(customColor) };
     }
     return {};
+  };
+
+  const parseCustomColor = (t: string, v: string) => {
+    const raw = colors?.[`${t}:${v}`];
+    if (!raw || NOTION_COLORS[raw]) return { bg: "#808080", text: "#ffffff" };
+    if (raw.includes('|')) {
+      const [bg, text] = raw.split('|');
+      return { bg, text };
+    }
+    return { bg: raw, text: getContrastYIQ(raw) };
   };
 
   const handleAdd = () => {
@@ -762,16 +776,28 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, onDelete
             </div>
             
             {onUpdateColors && (
-              <div className="hidden group-hover/item:flex items-center gap-2 ml-2 bg-[#4f4f4f] px-1.5 py-1 rounded border border-[#5f5f5f]">
+              <div className="flex opacity-0 group-hover/item:opacity-100 focus-within:opacity-100 items-center gap-1.5 ml-2 bg-[#4f4f4f] px-1.5 py-1 rounded border border-[#5f5f5f] transition-opacity">
                 <input 
                   type="color"
-                  value={colors?.[`${type}:${opt}`] && !NOTION_COLORS[colors[`${type}:${opt}`]] ? colors[`${type}:${opt}`] : "#808080"}
+                  value={parseCustomColor(type, opt).bg}
                   onChange={(e) => {
-                    onUpdateColors({ ...colors, [`${type}:${opt}`]: e.target.value });
+                    const text = parseCustomColor(type, opt).text;
+                    onUpdateColors({ ...colors, [`${type}:${opt}`]: `${e.target.value}|${text}` });
                   }}
                   onClick={(e) => e.stopPropagation()}
                   className="w-5 h-5 cursor-pointer border-none bg-transparent p-0 flex-shrink-0"
-                  title="Cambiar color personalizado"
+                  title="Cambiar color de fondo"
+                />
+                <input 
+                  type="color"
+                  value={parseCustomColor(type, opt).text}
+                  onChange={(e) => {
+                    const bg = parseCustomColor(type, opt).bg;
+                    onUpdateColors({ ...colors, [`${type}:${opt}`]: `${bg}|${e.target.value}` });
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-5 h-5 cursor-pointer border-none bg-transparent p-0 flex-shrink-0 rounded-full"
+                  title="Cambiar color de texto"
                 />
                 {onDeleteOption && (
                   <button
