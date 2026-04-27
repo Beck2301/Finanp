@@ -160,6 +160,16 @@ export function useFinanceData() {
     if (dbField) await supabase.from("expenses").update({ [dbField]: value }).eq("id", id);
   }, []);
 
+  const updateExpenseBulk = useCallback(async (id: string, updates: Partial<Expense>) => {
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+    const dbUpdate: any = {};
+    Object.entries(updates).forEach(([key, val]) => {
+      const dbField = fieldToDb(key as keyof Expense);
+      if (dbField) dbUpdate[dbField] = val;
+    });
+    await supabase.from("expenses").update(dbUpdate).eq("id", id);
+  }, []);
+
   const deleteExpense = useCallback(async (id: string) => {
     setExpenses(prev => prev.filter(e => e.id !== id));
     await supabase.from("expenses").delete().eq("id", id);
@@ -242,7 +252,7 @@ export function useFinanceData() {
     expenses, incomes,
     categories, paymentTypes, paymentMethods, statuses,
     colors, savedFilters, columnWidths,
-    addExpense, updateExpense, deleteExpense,
+    addExpense, updateExpense, updateExpenseBulk, deleteExpense,
     addIncome, updateIncome, deleteIncome,
     updateCategories, updatePaymentTypes, updatePaymentMethods, updateStatuses,
     updateColors, updateSavedFilters, updateColumnWidths,

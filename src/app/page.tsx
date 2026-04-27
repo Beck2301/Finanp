@@ -46,7 +46,7 @@ export default function Dashboard() {
     expenses, incomes,
     categories, paymentTypes, paymentMethods, statuses,
     colors, savedFilters, columnWidths,
-    addExpense, updateExpense: updateExpenseDb, deleteExpense,
+    addExpense, updateExpense: updateExpenseDb, updateExpenseBulk, deleteExpense,
     addIncome, updateIncome: updateIncomeDb, deleteIncome,
     updateCategories, updatePaymentTypes, updatePaymentMethods, updateStatuses,
     updateColors, updateSavedFilters, updateColumnWidths,
@@ -256,7 +256,7 @@ export default function Dashboard() {
       <IncomeModal isOpen={isIncomeModalOpen} onClose={() => setIncomeModalOpen(false)} onAdd={(i) => addIncome(i)} />
       <IncomesListModal isOpen={isIncomesListOpen} onClose={() => setIncomesListOpen(false)} incomes={incomes} onUpdate={updateIncomeDb} onDelete={deleteIncome} />
       <ExpenseModal isOpen={isExpenseModalOpen} onClose={() => setExpenseModalOpen(false)} onAdd={(e) => addExpense(e)} categories={categories} />
-      <EditExpenseModal isOpen={!!editingExpense} onClose={() => setEditingExpense(null)} expense={editingExpense} onUpdate={updateExpenseDb} categories={categories} />
+      <EditExpenseModal isOpen={!!editingExpense} onClose={() => setEditingExpense(null)} expense={editingExpense} onUpdate={updateExpenseBulk} categories={categories} />
       <CategoryModal isOpen={isCategoryModalOpen} onClose={() => setCategoryModalOpen(false)} categories={categories} setCategories={updateCategories} />
       {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
 
