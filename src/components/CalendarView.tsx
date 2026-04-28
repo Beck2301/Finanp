@@ -84,7 +84,18 @@ export function CalendarView({ incomes, expenses }: CalendarViewProps) {
             border-color: #f3f4f6 !important;
           }
           .calendar-container .fc-day-today {
-            background: #fefce8 !important;
+            background: rgba(59, 130, 246, 0.04) !important;
+          }
+          .calendar-container .fc-day-today .fc-daygrid-day-number {
+            background: #1f2937;
+            color: white !important;
+            border-radius: 100%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 4px !important;
           }
           .calendar-container .fc-event {
             border: none !important;

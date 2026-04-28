@@ -490,7 +490,12 @@ export default function Dashboard() {
                             </div>
                             
                             <div style={{ width: localColumnWidths.date || 160 }} className="border-r border-gray-300 flex items-center font-medium shrink-0">
-                              <input type="date" value={item.date} onChange={(e) => updateExpense(item.id, 'date', e.target.value)} className="w-full h-full px-4 py-2 bg-transparent outline-none focus:bg-white focus:ring-1 ring-blue-400" />
+                              <input 
+                                type="date" 
+                                value={item.date} 
+                                onChange={(e) => updateExpense(item.id, 'date', e.target.value)} 
+                                className="w-full h-full px-5 py-2 bg-transparent outline-none focus:bg-white focus:ring-1 ring-blue-400 appearance-none" 
+                              />
                             </div>
                             
                             <div style={{ width: localColumnWidths.status || 160 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
