@@ -332,7 +332,7 @@ export default function Dashboard() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#f5f6f8]">
-          <div className="max-w-[1600px] mx-auto min-h-full flex flex-col">
+          <div className="w-full min-h-full flex flex-col">
             
             <div className="flex items-center gap-2 sm:gap-6 border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar shrink-0">
               <Tab label="Resumen" active={activeTab === 'resumen'} onClick={() => setActiveTab('resumen')} />
