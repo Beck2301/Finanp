@@ -268,7 +268,7 @@ export default function Dashboard() {
     <div className="flex h-screen w-full overflow-hidden bg-[#f5f6f8] text-[var(--foreground)] font-sans">
       <CustomColumnModal isOpen={isColumnModalOpen} onClose={() => setColumnModalOpen(false)} onAdd={(name) => setCustomColumns([...customColumns, { id: `col_${Date.now()}`, name }])} />
       <IncomeModal isOpen={isIncomeModalOpen} onClose={() => setIncomeModalOpen(false)} onAdd={(i) => addIncome(i)} />
-      <IncomesListModal isOpen={isIncomesListOpen} onClose={() => setIncomesListOpen(false)} incomes={incomes} onUpdate={updateIncomeDb} onDelete={deleteIncome} />
+      <IncomesListModal isOpen={isIncomesListOpen} onClose={() => setIncomesListOpen(false)} incomes={incomes} onUpdate={updateIncomeDb} onDelete={deleteIncome} onAdd={addIncome} />
       <ExpenseModal isOpen={isExpenseModalOpen} onClose={() => setExpenseModalOpen(false)} onAdd={(e) => addExpense(e)} onAddBulk={(es) => addExpensesBulk(es)} categories={categories} />
       <EditExpenseModal isOpen={!!editingExpense} onClose={() => setEditingExpense(null)} expense={editingExpense} onUpdate={updateExpenseBulk} onAddBulk={addExpensesBulk} categories={categories} />
       <CategoryModal isOpen={isCategoryModalOpen} onClose={() => setCategoryModalOpen(false)} categories={categories} setCategories={updateCategories} />
@@ -332,7 +332,7 @@ export default function Dashboard() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#f5f6f8]">
-          <div className="max-w-7xl mx-auto min-h-full flex flex-col">
+          <div className="max-w-[1600px] mx-auto min-h-full flex flex-col">
             
             <div className="flex items-center gap-2 sm:gap-6 border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar shrink-0">
               <Tab label="Resumen" active={activeTab === 'resumen'} onClick={() => setActiveTab('resumen')} />
