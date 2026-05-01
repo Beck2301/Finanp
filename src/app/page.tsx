@@ -120,15 +120,29 @@ export default function Dashboard() {
   const [isIncomesListOpen, setIncomesListOpen] = useState(false);
 
   // Filters & Month
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 3, 1));
+  const [currentDate, setCurrentDate] = useState(() => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), 1); });
   const filterBtnRef = useRef<HTMLButtonElement>(null);
   const filterPanelRef = useRef<HTMLDivElement>(null);
   const [filterCoords, setFilterCoords] = useState({ top: 0, left: 0 });
   const [sortConfig, setSortConfig] = useState<{ key: keyof Expense | "monto", direction: "asc" | "desc" } | null>(null);
   const [customColumns, setCustomColumns] = useState<{id: string, name: string}[]>([]);
 
+  // Auto-advance to the month with the most recent expense when data changes
+  useEffect(() => {
+    if (expenses.length === 0) return;
+    const latest = expenses.reduce((max, e) => {
+      const d = new Date(e.date + 'T12:00:00');
+      return d > max ? d : max;
+    }, new Date(0));
+    setCurrentDate(prev => {
+      const prevTs = prev.getFullYear() * 12 + prev.getMonth();
+      const latestTs = latest.getFullYear() * 12 + latest.getMonth();
+      return latestTs > prevTs ? new Date(latest.getFullYear(), latest.getMonth(), 1) : prev;
+    });
+  }, [expenses]);
+
   // Computed data
-  let currentMonthExpenses = expenses.filter(e => new Date(e.date).getMonth() === currentDate.getMonth() && new Date(e.date).getFullYear() === currentDate.getFullYear());
+  let currentMonthExpenses = expenses.filter(e => new Date(e.date + 'T12:00:00').getMonth() === currentDate.getMonth() && new Date(e.date + 'T12:00:00').getFullYear() === currentDate.getFullYear());
   
   if (filterStatus !== "Todos") currentMonthExpenses = currentMonthExpenses.filter(e => e.status === filterStatus);
   if (filterCategory !== "Todas") currentMonthExpenses = currentMonthExpenses.filter(e => e.category === filterCategory);
