@@ -484,7 +484,7 @@ export default function Dashboard() {
                         {currentMonthExpenses.length === 0 && <div className="p-4 text-center text-gray-500 text-sm">No hay gastos registrados.</div>}
                         {currentMonthExpenses.map((item) => (
                           <div key={item.id} className={`flex text-[13px] border-b border-gray-300 hover:bg-blue-50/50 transition-colors group relative ${item.status === 'Pendiente' ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-800'}`}>
-                            <div className="absolute right-0 top-0 bottom-0 w-[80px] flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none z-30 gap-2 bg-gradient-to-l from-blue-50/80 to-transparent">
+                            <div className="absolute right-0 top-0 bottom-0 w-[80px] flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 pointer-events-none z-30 gap-2 bg-gradient-to-l from-white/95 sm:from-blue-50/80 to-transparent">
                               <button onClick={() => setEditingExpense(item)} className="w-7 h-7 rounded-lg bg-white border border-blue-200 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white pointer-events-auto transition-all shadow-sm" title="Editar fila"><MoreHorizontal size={16} /></button>
                               <button onClick={() => deleteExpense(item.id)} className="w-7 h-7 rounded-lg bg-white border border-red-200 text-red-600 flex items-center justify-center hover:bg-red-600 hover:text-white pointer-events-auto transition-all shadow-sm" title="Eliminar fila"><Trash2 size={16} /></button>
                             </div>
