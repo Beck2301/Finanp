@@ -426,10 +426,20 @@ export default function Dashboard() {
                         document.body
                       )}
                     </div>
-                    <div className="flex gap-2 w-full lg:w-auto mt-2 lg:mt-0">
-                      <button onClick={() => setIncomeModalOpen(true)} className="flex-1 lg:flex-none justify-center px-3 py-2 sm:py-1.5 text-sm bg-blue-50 text-blue-600 font-medium rounded-md hover:bg-blue-100 transition-colors">Añadir Ingreso</button>
-                      <button onClick={() => setExpenseModalOpen(true)} className="flex-1 lg:flex-none justify-center px-3 py-2 sm:py-1.5 text-sm bg-[var(--primary)] text-white font-medium rounded-md hover:bg-[var(--primary-hover)] transition-colors flex items-center gap-1.5 shadow-sm">
-                        <Plus size={16} /> Añadir Gasto
+                    <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full lg:w-auto mt-2 lg:mt-0">
+                      <button 
+                        onClick={() => setIncomeModalOpen(true)} 
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 text-xs sm:text-sm bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition-all active:scale-95 border border-blue-100"
+                      >
+                        <Plus size={14} className="sm:w-4 sm:h-4" />
+                        <span>Añadir Ingreso</span>
+                      </button>
+                      <button 
+                        onClick={() => setExpenseModalOpen(true)} 
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 text-xs sm:text-sm bg-gray-900 text-white font-bold rounded-lg hover:bg-black transition-all active:scale-95 shadow-md"
+                      >
+                        <Plus size={14} className="sm:w-4 sm:h-4" />
+                        <span>Añadir Gasto</span>
                       </button>
                     </div>
                   </div>
@@ -477,17 +487,22 @@ export default function Dashboard() {
                             <ResizeHandle onResize={(w) => handleResize(col.id, w)} onSave={(w) => saveResize(col.id, w)} />
                           </div>
                         ))}
-                        <div onClick={addCustomColumn} className="w-[80px] p-2 flex items-center justify-center font-medium cursor-pointer hover:bg-gray-200 text-gray-400 shrink-0" title="Añadir columna"><Plus size={16} /></div>
+                        <div style={{ width: 100 }} className="p-2 flex items-center justify-center font-medium bg-gray-100/50 border-l border-gray-300 shrink-0">
+                          <button 
+                            onClick={addCustomColumn} 
+                            className="p-1.5 hover:bg-gray-200 text-gray-500 rounded transition-colors" 
+                            title="Añadir columna"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
                       </div>
 
                       <div className="flex flex-col bg-white">
                         {currentMonthExpenses.length === 0 && <div className="p-4 text-center text-gray-500 text-sm">No hay gastos registrados.</div>}
                         {currentMonthExpenses.map((item) => (
                           <div key={item.id} className={`flex text-[13px] border-b border-gray-300 hover:bg-blue-50/50 transition-colors group relative ${item.status === 'Pendiente' ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-800'}`}>
-                            <div className="absolute right-0 top-0 bottom-0 w-[80px] flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 pointer-events-none z-30 gap-2 bg-gradient-to-l from-white/95 sm:from-blue-50/80 to-transparent">
-                              <button onClick={() => setEditingExpense(item)} className="w-7 h-7 rounded-lg bg-white border border-blue-200 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white pointer-events-auto transition-all shadow-sm" title="Editar fila"><MoreHorizontal size={16} /></button>
-                              <button onClick={() => deleteExpense(item.id)} className="w-7 h-7 rounded-lg bg-white border border-red-200 text-red-600 flex items-center justify-center hover:bg-red-600 hover:text-white pointer-events-auto transition-all shadow-sm" title="Eliminar fila"><Trash2 size={16} /></button>
-                            </div>
+                            {/* Row Action Buttons Moved to a real column below */}
                             
                             <div style={{ width: localColumnWidths.date || 160 }} className="border-r border-gray-300 flex items-center font-medium shrink-0">
                               <input 
@@ -534,7 +549,22 @@ export default function Dashboard() {
                                 <input type="text" className="w-full h-full px-2 py-2 bg-transparent outline-none focus:bg-white focus:ring-1 ring-blue-400 placeholder-gray-200" placeholder="-" />
                               </div>
                             ))}
-                            <div className="w-[80px] bg-transparent pointer-events-none border-l border-transparent shrink-0"></div> {/* Action Spacer */}
+                            <div className="w-[100px] flex items-center justify-center gap-2 border-l border-gray-200 px-2 shrink-0 bg-gray-50/30">
+                              <button 
+                                onClick={() => setEditingExpense(item)} 
+                                className="w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-500 flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm active:scale-95" 
+                                title="Editar"
+                              >
+                                <MoreHorizontal size={16} />
+                              </button>
+                              <button 
+                                onClick={() => deleteExpense(item.id)} 
+                                className="w-8 h-8 rounded-lg bg-white border border-gray-200 text-gray-500 flex items-center justify-center hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all shadow-sm active:scale-95" 
+                                title="Eliminar"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </div>
                         ))}
                         
@@ -548,7 +578,7 @@ export default function Dashboard() {
                           <div style={{ width: localColumnWidths.category || 130 }} className="p-2 border-r border-gray-300 shrink-0"></div>
                           <div style={{ width: localColumnWidths.description || 180 }} className="p-2 border-r border-gray-300 shrink-0"></div>
                           {customColumns.map(col => <div key={col.id} style={{ width: localColumnWidths[col.id] || 150 }} className="p-2 border-r border-gray-300 shrink-0"></div>)}
-                          <div className="w-[80px] shrink-0"></div>
+                          <div className="w-[100px] border-l border-gray-300 shrink-0"></div>
                         </div>
 
                       </div>
