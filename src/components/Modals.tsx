@@ -548,65 +548,53 @@ export function IncomesListModal({ isOpen, onClose, incomes, onUpdate, onDelete,
             </div>
           ) : (
             incomes.map(inc => (
-              <div key={inc.id} className="bg-white border border-gray-100 rounded-lg p-3 hover:border-gray-300 transition-all shadow-sm group">
-                <div className="flex items-center gap-4">
-                  {/* Concepto */}
-                  <div className="flex-[2] min-w-0">
+              <div key={inc.id} className="bg-white border border-gray-100 rounded-lg p-3 hover:border-gray-200 transition-all shadow-sm group">
+                {/* Row 1: Concept + Delete */}
+                <div className="flex items-center gap-2 mb-2">
+                  <input 
+                    type="text" 
+                    value={inc.source} 
+                    onChange={e => onUpdate(inc.id, { source: e.target.value })} 
+                    className="flex-1 font-semibold text-gray-700 text-sm bg-transparent outline-none focus:bg-gray-50 px-2 py-1 rounded transition-all min-w-0"
+                    placeholder="Concepto..."
+                  />
+                  <button 
+                    onClick={() => onDelete(inc.id)} 
+                    className="p-1.5 text-gray-300 hover:text-red-500 active:text-red-600 transition-colors flex-shrink-0 sm:opacity-0 sm:group-hover:opacity-100"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+
+                {/* Row 2: Type + Date + Amount */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select 
+                    value={inc.type} 
+                    onChange={e => onUpdate(inc.id, { type: e.target.value as IncomeType })} 
+                    className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gray-50 text-gray-500 outline-none border border-gray-200 focus:border-gray-400 cursor-pointer flex-shrink-0"
+                  >
+                    <option value="Extra">Extra</option>
+                    <option value="Recurrente">Recurrente</option>
+                    <option value="Retiro de ahorro">Retiro de ahorro</option>
+                  </select>
+
+                  <input 
+                    type="date" 
+                    value={inc.date} 
+                    onChange={e => onUpdate(inc.id, { date: e.target.value })} 
+                    className="flex-1 min-w-[120px] bg-transparent outline-none text-[11px] text-gray-400 font-medium focus:text-gray-600 cursor-pointer py-1" 
+                  />
+
+                  <div className="flex items-center bg-gray-50 px-2 py-1 rounded border border-gray-100 focus-within:border-gray-300 focus-within:bg-white transition-all flex-shrink-0">
+                    <span className="text-gray-400 text-xs mr-1">$</span>
                     <input 
-                      type="text" 
-                      value={inc.source} 
-                      onChange={e => onUpdate(inc.id, { source: e.target.value })} 
-                      className="w-full font-semibold text-gray-700 text-sm bg-transparent outline-none focus:bg-gray-50 px-2 py-1.5 rounded transition-all"
-                      placeholder="Concepto..."
+                      type="number" 
+                      step="0.01" 
+                      value={inc.amount} 
+                      onChange={e => onUpdate(inc.id, { amount: parseFloat(e.target.value) || 0 })} 
+                      className="w-24 text-right font-semibold text-gray-700 text-sm bg-transparent outline-none tabular-nums" 
                     />
-                  </div>
-
-                  {/* Tipo (Pill) */}
-                  <div className="flex-1">
-                    <select 
-                      value={inc.type} 
-                      onChange={e => onUpdate(inc.id, { type: e.target.value as IncomeType })} 
-                      className="w-full px-2 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-gray-50 text-gray-500 outline-none border border-gray-200 focus:border-gray-400 cursor-pointer"
-                    >
-                      <option value="Extra">Extra</option>
-                      <option value="Recurrente">Recurrente</option>
-                      <option value="Retiro de ahorro">Retiro de ahorro</option>
-                    </select>
-                  </div>
-
-                  {/* Fecha */}
-                  <div className="flex-1">
-                    <input 
-                      type="date" 
-                      value={inc.date} 
-                      onChange={e => onUpdate(inc.id, { date: e.target.value })} 
-                      className="w-full bg-transparent outline-none text-[11px] text-gray-400 font-medium focus:text-gray-600 cursor-pointer" 
-                    />
-                  </div>
-
-                  {/* Monto */}
-                  <div className="flex-1 min-w-[120px]">
-                    <div className="flex items-center bg-gray-50/50 px-2 py-1 rounded border border-gray-100 focus-within:border-gray-300 focus-within:bg-white transition-all">
-                      <span className="text-gray-400 text-xs mr-1">$</span>
-                      <input 
-                        type="number" 
-                        step="0.01" 
-                        value={inc.amount} 
-                        onChange={e => onUpdate(inc.id, { amount: parseFloat(e.target.value) || 0 })} 
-                        className="w-full text-right font-semibold text-gray-700 text-sm bg-transparent outline-none tabular-nums" 
-                      />
-                    </div>
-                  </div>
-
-                  {/* Acciones */}
-                  <div className="flex items-center justify-end">
-                    <button 
-                      onClick={() => onDelete(inc.id)} 
-                      className="p-2 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" 
-                      title="Eliminar"
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   </div>
                 </div>
               </div>
