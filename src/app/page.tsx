@@ -127,20 +127,6 @@ export default function Dashboard() {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Expense | "monto", direction: "asc" | "desc" } | null>(null);
   const [customColumns, setCustomColumns] = useState<{id: string, name: string}[]>([]);
 
-  // Auto-advance to the month with the most recent expense when data changes
-  useEffect(() => {
-    if (expenses.length === 0) return;
-    const latest = expenses.reduce((max, e) => {
-      const d = new Date(e.date + 'T12:00:00');
-      return d > max ? d : max;
-    }, new Date(0));
-    setCurrentDate(prev => {
-      const prevTs = prev.getFullYear() * 12 + prev.getMonth();
-      const latestTs = latest.getFullYear() * 12 + latest.getMonth();
-      return latestTs > prevTs ? new Date(latest.getFullYear(), latest.getMonth(), 1) : prev;
-    });
-  }, [expenses]);
-
   // Computed data
   let currentMonthExpenses = expenses.filter(e => new Date(e.date + 'T12:00:00').getMonth() === currentDate.getMonth() && new Date(e.date + 'T12:00:00').getFullYear() === currentDate.getFullYear());
   
