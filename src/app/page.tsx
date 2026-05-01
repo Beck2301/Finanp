@@ -523,7 +523,14 @@ export default function Dashboard() {
                             
                             <div style={{ width: localColumnWidths.amount || 130 }} className="border-r border-gray-300 flex items-center justify-end font-mono font-medium shrink-0">
                               <div className="flex items-center w-full h-full focus-within:bg-white focus-within:ring-1 ring-blue-400 px-2 py-2">
-                                <input type="text" value={item.amount ? formatCurrency(item.amount) : ''} onChange={(e) => updateExpense(item.id, 'amount', parseFloat(e.target.value.replace(/,/g, '')) || 0)} className="w-full bg-transparent outline-none text-right placeholder-gray-300" placeholder="0.00" />
+                                <input 
+                                  type="number" 
+                                  step="0.01"
+                                  value={item.amount || ''} 
+                                  onChange={(e) => updateExpense(item.id, 'amount', parseFloat(e.target.value) || 0)} 
+                                  className="w-full bg-transparent outline-none text-right placeholder-gray-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                  placeholder="0.00" 
+                                />
                                 <span className="text-gray-400 ml-1">US$</span>
                               </div>
                             </div>
