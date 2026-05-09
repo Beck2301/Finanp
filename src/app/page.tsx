@@ -10,14 +10,9 @@ export default function LandingPage() {
       <nav className="fixed w-full z-50 top-0 border-b border-gray-100 bg-white/90 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-[60px] sm:h-[68px] flex items-center justify-between">
           <div className="flex items-center">
-            <Image
-              src="/logo-without-bg.png"
-              alt="Finanp"
-              width={200}
-              height={68}
-              style={{ height: '52px', width: 'auto' }}
-              priority
-            />
+            <span className="font-extrabold text-[22px] tracking-tight" style={{ color: '#0d1b2a', letterSpacing: '-0.5px' }}>
+              finan<span style={{ color: '#0073ea' }}>p</span>
+            </span>
           </div>
           <div className="flex items-center gap-3 sm:gap-6">
             <Link href="/login" className="text-[13px] sm:text-[14px] font-semibold text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
@@ -262,14 +257,10 @@ export default function LandingPage() {
       {/* ─── FOOTER ──────────────────────────────────────────── */}
       <footer className="border-t border-gray-100 py-8 sm:py-10 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <Image
-              src="/logo-without-bg.png"
-              alt="Finanp"
-              width={80}
-              height={24}
-              className="h-6 w-auto object-contain"
-            />
+          <div className="flex items-center">
+            <span className="font-extrabold text-[16px] tracking-tight" style={{ color: '#0d1b2a', letterSpacing: '-0.5px' }}>
+              finan<span style={{ color: '#0073ea' }}>p</span>
+            </span>
           </div>
           <p className="text-[12px] sm:text-[13px] text-gray-400">
             Desarrollado por{' '}
