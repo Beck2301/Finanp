@@ -7,7 +7,7 @@ import {
   ChevronDown, CalendarDays, Calendar as CalIcon, Asterisk, 
   FileText, Hash, CreditCard, Building, AlignLeft, MoreHorizontal,
   ChevronLeft, ChevronRight, Filter, Settings2, PanelLeftClose, PanelLeft,
-  Trash2, ArrowUpDown, LogOut
+  Trash2, ArrowUpDown, LogOut, UserPlus
 } from "lucide-react";
 import { Income, Expense, PaymentStatus } from "@/types/finance";
 import { IncomeModal, ExpenseModal, CategoryModal, CustomColumnModal, EditExpenseModal, IncomesListModal } from "@/components/Modals";
