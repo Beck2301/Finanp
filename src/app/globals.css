@@ -106,3 +106,8 @@ button, a, select, [role="button"], label[for], [tabindex]:not([tabindex="-1"]) 
   scrollbar-width: thin;
   scrollbar-color: #5f5f5f transparent;
 }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}

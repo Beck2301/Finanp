@@ -31,12 +31,14 @@ export async function proxy(request: NextRequest) {
   // Allow seed page without redirect (admin tool)
   if (isSeedPage) return supabaseResponse;
 
-  if (!user && !isAuthPage) {
+  const isHomePage = request.nextUrl.pathname === "/";
+
+  if (!user && !isAuthPage && !isHomePage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (user && isAuthPage) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return supabaseResponse;
