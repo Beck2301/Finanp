@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { 
   Home, Wallet, PieChart, Settings, Plus, Search, Bell, Menu, 
@@ -14,7 +14,9 @@ import { IncomeModal, ExpenseModal, CategoryModal, CustomColumnModal, EditExpens
 import { CalendarView } from "@/components/CalendarView";
 import { StatsView } from "@/components/StatsView";
 import { BudgetView } from "@/components/BudgetView";
+import { CreditCardsView } from "@/components/CreditCardsView";
 import { useFinanceData } from "@/hooks/useFinanceData";
+import { useCreditCardData } from "@/hooks/useCreditCardData";
 import { createClient } from "@/lib/supabase";
 
 const INITIAL_EXPENSES: Expense[] = [
@@ -51,6 +53,12 @@ export default function Dashboard() {
     updateCategories, updatePaymentTypes, updatePaymentMethods, updateStatuses,
     updateColors, updateSavedFilters, updateColumnWidths,
   } = useFinanceData();
+
+  const {
+    cards, purchases: ccPurchases,
+    addCard, updateCard, deleteCard,
+    addPurchase, updatePurchase, deletePurchase, generatePayment,
+  } = useCreditCardData(userId, addExpense);
 
   // Load filters from DB once loaded
   useEffect(() => {
@@ -164,18 +172,30 @@ export default function Dashboard() {
     return isSameMonthYear || isRecurrentAndPast;
   });
 
+  // CC card names — expenses with these payment methods don't affect balance
+  const ccCardNames = useMemo(() => new Set(cards.map(c => c.name)), [cards]);
+
+  // Payment methods merged with registered CC card names for the dropdown
+  const allPaymentMethods = useMemo(() => {
+    const merged = [...paymentMethods];
+    cards.forEach(c => { if (!merged.includes(c.name)) merged.push(c.name); });
+    return merged;
+  }, [paymentMethods, cards]);
+
   // Total Incomes for Current Month (including Recurrent ones that apply this month)
   const totalIncome = currentMonthIncomes.reduce((acc, curr) => acc + curr.amount, 0);
-  
-  // Total Expenses for Current Month
+
+  // Total Expenses for Current Month (CC purchases excluded from balance)
   const projectedExpenses = currentMonthExpenses.reduce((acc, curr) => acc + curr.amount, 0);
-  const totalExpenses = currentMonthExpenses.filter(e => e.status === "Completado").reduce((acc, curr) => acc + curr.amount, 0);
+  const totalExpenses = currentMonthExpenses
+    .filter(e => e.status === "Completado" && !ccCardNames.has(e.paymentMethod ?? ""))
+    .reduce((acc, curr) => acc + curr.amount, 0);
 
   // Accumulated Balance (Disponible Acumulado) up to the selected month
   let accumulatedIncome = 0;
   incomes.forEach(i => {
     const incDate = new Date(i.date);
-    if (incDate.getFullYear() > currentDate.getFullYear() || 
+    if (incDate.getFullYear() > currentDate.getFullYear() ||
        (incDate.getFullYear() === currentDate.getFullYear() && incDate.getMonth() > currentDate.getMonth())) {
        return; // Future income, ignore
     }
@@ -189,8 +209,9 @@ export default function Dashboard() {
 
   const accumulatedExpenses = expenses.filter(e => {
     if (e.status !== "Completado") return false;
+    if (ccCardNames.has(e.paymentMethod ?? "")) return false; // CC purchase — excluded until card is paid
     const expDate = new Date(e.date);
-    return expDate.getFullYear() < currentDate.getFullYear() || 
+    return expDate.getFullYear() < currentDate.getFullYear() ||
       (expDate.getFullYear() === currentDate.getFullYear() && expDate.getMonth() <= currentDate.getMonth());
   }).reduce((acc, curr) => acc + curr.amount, 0);
 
@@ -293,6 +314,7 @@ export default function Dashboard() {
             <NavItem icon={<CalendarDays size={18} />} label="Calendario Mensual" active={activeTab === 'calendario'} onClick={() => setActiveTab('calendario')} collapsed={isSidebarCollapsed} />
             <NavItem icon={<PieChart size={18} />} label="Estadísticas" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} collapsed={isSidebarCollapsed} />
             <NavItem icon={<Wallet size={18} />} label="Presupuesto" active={activeTab === 'presupuesto'} onClick={() => setActiveTab('presupuesto')} collapsed={isSidebarCollapsed} />
+            <NavItem icon={<CreditCard size={18} />} label="Tarjetas de Crédito" active={activeTab === 'tarjetas'} onClick={() => setActiveTab('tarjetas')} collapsed={isSidebarCollapsed} />
           </nav>
         </div>
         
@@ -339,6 +361,7 @@ export default function Dashboard() {
               <Tab label="Calendario" active={activeTab === 'calendario'} onClick={() => setActiveTab('calendario')} />
               <Tab label="Estadísticas" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} />
               <Tab label="Presupuesto" active={activeTab === 'presupuesto'} onClick={() => setActiveTab('presupuesto')} />
+              <Tab label="Tarjetas" active={activeTab === 'tarjetas'} onClick={() => setActiveTab('tarjetas')} />
             </div>
 
             {activeTab === 'calendario' ? (
@@ -347,6 +370,23 @@ export default function Dashboard() {
               <StatsView expenses={expenses} incomes={incomes} />
             ) : activeTab === 'presupuesto' ? (
               <BudgetView available={accumulatedAvailable} />
+            ) : activeTab === 'tarjetas' ? (
+              <CreditCardsView
+                cards={cards}
+                purchases={ccPurchases}
+                expenses={expenses}
+                categories={categories}
+                onAddCard={addCard}
+                onUpdateCard={updateCard}
+                onDeleteCard={deleteCard}
+                onAddPurchase={addPurchase}
+                onUpdatePurchase={updatePurchase}
+                onDeletePurchase={deletePurchase}
+                onGeneratePayment={(cardId, purchaseIds, mainExpenseIds, details) => {
+                  generatePayment(cardId, purchaseIds, details);
+                  mainExpenseIds.forEach(id => updateExpenseBulk(id, { status: "TC Pagado" }));
+                }}
+              />
             ) : (
               <>
                 <div className="flex flex-wrap items-center justify-between mb-8 gap-4">
@@ -412,7 +452,7 @@ export default function Dashboard() {
                             <CompactFilterSelect label="Estado" options={["Todos", ...statuses]} value={filterStatus} onChange={setFilterStatus} />
                             <CompactFilterSelect label="Categoría" options={["Todas", ...categories]} value={filterCategory} onChange={setFilterCategory} />
                             <CompactFilterSelect label="Tipo de pago" options={["Todos", ...paymentTypes]} value={filterPaymentType} onChange={setFilterPaymentType} />
-                            <CompactFilterSelect label="Forma de pago" options={["Todos", ...paymentMethods]} value={filterPaymentMethod} onChange={setFilterPaymentMethod} />
+                            <CompactFilterSelect label="Forma de pago" options={["Todos", ...allPaymentMethods]} value={filterPaymentMethod} onChange={setFilterPaymentMethod} />
                           </div>
                           <div className="px-3 pb-3">
                             <button
@@ -500,8 +540,10 @@ export default function Dashboard() {
 
                       <div className="flex flex-col bg-white">
                         {currentMonthExpenses.length === 0 && <div className="p-4 text-center text-gray-500 text-sm">No hay gastos registrados.</div>}
-                        {currentMonthExpenses.map((item) => (
-                          <div key={item.id} className={`flex text-[13px] border-b border-gray-300 hover:bg-blue-50/50 transition-colors group relative ${item.status === 'Pendiente' ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-800'}`}>
+                        {currentMonthExpenses.map((item) => {
+                          const isCCExpense = ccCardNames.has(item.paymentMethod ?? "");
+                          return (
+                          <div key={item.id} className={`flex text-[13px] border-b border-gray-300 hover:bg-blue-50/50 transition-colors group relative ${isCCExpense ? 'bg-purple-50/40 text-gray-700' : item.status === 'Pendiente' ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-800'}`}>
                             {/* Row Action Buttons Moved to a real column below */}
                             
                             <div style={{ width: localColumnWidths.date || 160 }} className="border-r border-gray-300 flex items-center font-medium shrink-0">
@@ -540,7 +582,7 @@ export default function Dashboard() {
                             </div>
                             
                             <div style={{ width: localColumnWidths.paymentMethod || 140 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
-                              <TablePillSelect value={item.paymentMethod || ''} options={paymentMethods} type="paymentMethod" onSelect={(v) => updateExpense(item.id, 'paymentMethod', v)} onAddOption={(v) => updatePaymentMethods([...paymentMethods, v])} onDeleteOption={(v) => updatePaymentMethods(paymentMethods.filter(s => s !== v))} colors={colors} onUpdateColors={updateColors} />
+                              <TablePillSelect value={item.paymentMethod || ''} options={allPaymentMethods} type="paymentMethod" onSelect={(v) => updateExpense(item.id, 'paymentMethod', v)} onAddOption={(v) => updatePaymentMethods([...paymentMethods, v])} onDeleteOption={(v) => updatePaymentMethods(paymentMethods.filter(s => s !== v))} colors={colors} onUpdateColors={updateColors} ccCardNames={ccCardNames} />
                             </div>
                             
                             <div style={{ width: localColumnWidths.category || 130 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
@@ -573,8 +615,9 @@ export default function Dashboard() {
                               </button>
                             </div>
                           </div>
-                        ))}
-                        
+                          );
+                        })}
+
                         <div className="flex text-[13px] text-gray-500 bg-gray-50 border-t border-gray-300 font-medium sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
                           <div style={{ width: localColumnWidths.date || 160 }} className="p-2 border-r border-gray-300 text-right uppercase tracking-wider text-[11px] flex items-center justify-end shrink-0">SUMA COMPLETADOS</div>
                           <div style={{ width: localColumnWidths.status || 160 }} className="p-2 border-r border-gray-300 shrink-0"></div>
@@ -676,7 +719,7 @@ function ResizeHandle({ onResize, onSave }: { onResize: (width: number) => void,
   );
 }
 
-function TablePillSelect({ value, options, type, onSelect, onAddOption, onDeleteOption, colors, onUpdateColors }: { value: string, options: string[], type: string, onSelect: (v: string) => void, onAddOption?: (v: string) => void, onDeleteOption?: (v: string) => void, colors?: Record<string, string>, onUpdateColors?: (c: Record<string, string>) => void }) {
+function TablePillSelect({ value, options, type, onSelect, onAddOption, onDeleteOption, colors, onUpdateColors, ccCardNames }: { value: string, options: string[], type: string, onSelect: (v: string) => void, onAddOption?: (v: string) => void, onDeleteOption?: (v: string) => void, colors?: Record<string, string>, onUpdateColors?: (c: Record<string, string>) => void, ccCardNames?: Set<string> }) {
   const [isOpen, setIsOpen] = useState(false);
   const [newOpt, setNewOpt] = useState("");
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, maxHeight: 300 });
@@ -897,8 +940,8 @@ function TablePillSelect({ value, options, type, onSelect, onAddOption, onDelete
         className={`w-full h-full cursor-pointer hover:bg-gray-100 p-1.5 rounded-md transition-colors flex items-center ${isOpen ? 'ring-1 ring-blue-400 bg-blue-50/50' : ''}`}
       >
         {value ? (
-          <span className={getPillClasses(type, value)} style={getPillStyle(type, value)}>
-            {(type === "status" || type === "paymentType") && <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${value.includes('total') || value === 'Completado' ? 'bg-current opacity-80' : 'bg-current opacity-80'}`}></div>}
+          <span className={ccCardNames?.has(value) ? "px-2.5 py-0.5 rounded-[4px] text-[13px] font-medium inline-flex items-center gap-1.5 select-none w-max max-w-full truncate bg-purple-50 text-purple-700 border border-purple-200" : getPillClasses(type, value)} style={ccCardNames?.has(value) ? {} : getPillStyle(type, value)}>
+            {ccCardNames?.has(value) ? <CreditCard size={11} className="shrink-0" /> : (type === "status" || type === "paymentType") && <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-current opacity-80"></div>}
             <span className="truncate">{value}</span>
           </span>
         ) : (
