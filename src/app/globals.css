@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-geist-sans), "Inter", "Roboto", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", var(--font-geist-sans), "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #323338;
+  --background: #f2f2f7;
+  --foreground: #1c1c1e;
   
-  --primary: #0073ea;
-  --primary-hover: #0060b9;
+  --primary: #007AFF;
+  --primary-hover: #0062cc;
   
   --sidebar-bg: #ffffff;
-  --sidebar-text: #323338;
-  --sidebar-active: #cce5ff;
+  --sidebar-text: #3c3c43;
+  --sidebar-active: rgba(0, 122, 255, 0.1);
   
   --card-bg: #ffffff;
-  --border-color: #d0d4e4;
+  --border-color: #e5e5ea;
   
   --status-done: #00c875;
   --status-working: #fdab3d;
@@ -26,7 +26,7 @@
   --monday-green: #00c875;
   --monday-red: #e2445c;
   --monday-yellow: #fdab3d;
-  --monday-blue: #0073ea;
+  --monday-blue: #007AFF;
   --monday-purple: #a25ddc;
   --monday-orange: #fdab3d;
   --monday-light-blue: #579bfc;
@@ -57,20 +57,20 @@ body {
   box-sizing: border-box;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar — macOS-style thin */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c3c6d4;
-  border-radius: 4px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a4b5;
+  background: rgba(0,0,0,0.25);
 }
 
 input, button, select, textarea {

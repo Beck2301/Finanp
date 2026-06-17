@@ -284,7 +284,7 @@ export default function Dashboard() {
   }, [filterActive]);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#f5f6f8] text-[var(--foreground)] font-sans">
+    <div className="flex h-screen w-full overflow-hidden bg-[#f2f2f7] text-[var(--foreground)] font-sans">
       <CustomColumnModal isOpen={isColumnModalOpen} onClose={() => setColumnModalOpen(false)} onAdd={(name) => setCustomColumns([...customColumns, { id: `col_${Date.now()}`, name }])} />
       <IncomeModal isOpen={isIncomeModalOpen} onClose={() => setIncomeModalOpen(false)} onAdd={(i) => addIncome(i)} />
       <IncomesListModal isOpen={isIncomesListOpen} onClose={() => setIncomesListOpen(false)} incomes={currentMonthIncomes} onUpdate={updateIncomeDb} onDelete={deleteIncome} onAdd={addIncome} />
@@ -294,68 +294,68 @@ export default function Dashboard() {
       <SavingsHistoryModal isOpen={isSavingsModalOpen} onClose={() => setSavingsModalOpen(false)} transactions={savingsTransactions} totalAhorros={totalAhorros} onAdd={addIncome} onUpdate={updateIncomeDb} onDelete={deleteIncome} />
       {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={`fixed md:static inset-y-0 left-0 z-50 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0'} ${isSidebarCollapsed ? 'md:w-[68px]' : 'md:w-[260px]'}`}>
-        <div className={`p-4 flex items-center justify-between border-b border-gray-200 h-[60px] shrink-0 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 bg-white border-r border-[#e5e5ea] flex flex-col transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0 w-[240px]' : '-translate-x-full md:translate-x-0'} ${isSidebarCollapsed ? 'md:w-[64px]' : 'md:w-[240px]'}`}>
+        <div className={`px-4 flex items-center justify-between border-b border-[#e5e5ea] h-[64px] shrink-0 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-lg shadow-sm shrink-0">F</div>
-            {!isSidebarCollapsed && <span className="font-bold text-xl tracking-tight text-gray-800 truncate">Finanzas</span>}
+            <div className="w-8 h-8 rounded-[10px] bg-[#007AFF] flex items-center justify-center text-white font-bold text-base shadow-sm shrink-0">F</div>
+            {!isSidebarCollapsed && <span className="font-semibold text-[17px] tracking-tight text-[#1c1c1e] truncate">Finanzas</span>}
           </div>
           <div className="flex gap-1">
-            {!isSidebarCollapsed && <button className="hidden md:flex text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-md transition-colors" onClick={() => setSidebarCollapsed(true)} title="Ocultar menú"><PanelLeftClose size={18}/></button>}
-            <button className="md:hidden text-gray-500 hover:bg-gray-100 p-1.5 rounded-md" onClick={() => setSidebarOpen(false)}><ChevronDown className="rotate-90" size={20}/></button>
+            {!isSidebarCollapsed && <button className="hidden md:flex text-[#8e8e93] hover:text-[#1c1c1e] hover:bg-[#f2f2f7] p-1.5 rounded-lg transition-colors" onClick={() => setSidebarCollapsed(true)} title="Ocultar menú"><PanelLeftClose size={18}/></button>}
+            <button className="md:hidden text-[#8e8e93] hover:bg-[#f2f2f7] p-1.5 rounded-lg" onClick={() => setSidebarOpen(false)}><ChevronDown className="rotate-90" size={20}/></button>
           </div>
         </div>
         
-        <div className="flex-1 py-4 overflow-y-auto overflow-x-hidden no-scrollbar">
-          {!isSidebarCollapsed && <div className="px-4 mb-2 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Favoritos</div>}
-          <nav className={`space-y-[2px] ${isSidebarCollapsed ? 'px-3' : 'px-2'}`} aria-label="Navegación principal">
-            <NavItem icon={<Home size={18} />} label="Inicio" active={activeTab === 'resumen'} onClick={() => setActiveTab('resumen')} collapsed={isSidebarCollapsed} />
-            <NavItem icon={<CalendarDays size={18} />} label="Calendario Mensual" active={activeTab === 'calendario'} onClick={() => setActiveTab('calendario')} collapsed={isSidebarCollapsed} />
-            <NavItem icon={<PieChart size={18} />} label="Estadísticas" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} collapsed={isSidebarCollapsed} />
-            <NavItem icon={<Wallet size={18} />} label="Presupuesto" active={activeTab === 'presupuesto'} onClick={() => setActiveTab('presupuesto')} collapsed={isSidebarCollapsed} />
-            <NavItem icon={<CreditCard size={18} />} label="Tarjetas de Crédito" active={activeTab === 'tarjetas'} onClick={() => setActiveTab('tarjetas')} collapsed={isSidebarCollapsed} />
+        <div className="flex-1 py-3 overflow-y-auto overflow-x-hidden no-scrollbar">
+          {!isSidebarCollapsed && <div className="px-4 mb-1.5 text-[11px] font-semibold text-[#8e8e93] uppercase tracking-wider">Favoritos</div>}
+          <nav className={`space-y-0.5 ${isSidebarCollapsed ? 'px-2' : 'px-2'}`} aria-label="Navegación principal">
+            <NavItem icon={<Home size={17} />} label="Inicio" active={activeTab === 'resumen'} onClick={() => setActiveTab('resumen')} collapsed={isSidebarCollapsed} />
+            <NavItem icon={<CalendarDays size={17} />} label="Calendario Mensual" active={activeTab === 'calendario'} onClick={() => setActiveTab('calendario')} collapsed={isSidebarCollapsed} />
+            <NavItem icon={<PieChart size={17} />} label="Estadísticas" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} collapsed={isSidebarCollapsed} />
+            <NavItem icon={<Wallet size={17} />} label="Presupuesto" active={activeTab === 'presupuesto'} onClick={() => setActiveTab('presupuesto')} collapsed={isSidebarCollapsed} />
+            <NavItem icon={<CreditCard size={17} />} label="Tarjetas de Crédito" active={activeTab === 'tarjetas'} onClick={() => setActiveTab('tarjetas')} collapsed={isSidebarCollapsed} />
           </nav>
         </div>
         
-        <div className={`p-4 border-t border-gray-200 cursor-pointer ${isSidebarCollapsed ? 'px-3' : 'px-4'}`} onClick={() => setCategoryModalOpen(true)}>
-          <NavItem icon={<Settings2 size={18} />} label="Configurar Categorías" collapsed={isSidebarCollapsed} />
+        <div className={`p-2 border-t border-[#e5e5ea] cursor-pointer`} onClick={() => setCategoryModalOpen(true)}>
+          <NavItem icon={<Settings2 size={17} />} label="Configurar Categorías" collapsed={isSidebarCollapsed} />
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
-        <header className="h-[60px] border-b border-gray-200 bg-white flex items-center justify-between px-3 sm:px-6 shrink-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <header className="h-[64px] border-b border-[#e5e5ea] bg-white flex items-center justify-between px-4 sm:px-6 shrink-0 z-10">
           <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
-            <button className="md:hidden text-gray-500 hover:bg-gray-100 p-1.5 rounded-md shrink-0" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button>
+            <button className="md:hidden text-[#8e8e93] hover:bg-[#f2f2f7] p-1.5 rounded-lg shrink-0" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button>
             {isSidebarCollapsed && (
-              <button className="hidden md:flex text-gray-500 hover:bg-gray-100 p-1.5 rounded-md transition-colors shrink-0" onClick={() => setSidebarCollapsed(false)} title="Mostrar menú">
+              <button className="hidden md:flex text-[#8e8e93] hover:bg-[#f2f2f7] p-1.5 rounded-lg transition-colors shrink-0" onClick={() => setSidebarCollapsed(false)} title="Mostrar menú">
                 <PanelLeft size={20} />
               </button>
             )}
-            <h1 className="text-lg sm:text-2xl font-bold flex items-center gap-2 text-gray-800 cursor-pointer hover:bg-gray-50 p-1 rounded-md transition-colors truncate">
+            <h1 className="text-[18px] sm:text-[20px] font-semibold tracking-tight text-[#1c1c1e] truncate">
               Dashboard Financiero
             </h1>
           </div>
           
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative hidden md:block">
-              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Buscar..." className="pl-9 pr-4 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all w-64 text-gray-700" />
+              <Search size={15} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8e8e93]" />
+              <input type="text" placeholder="Buscar..." className="pl-9 pr-4 py-1.5 bg-[#f2f2f7] border-0 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 transition-all w-56 text-[#1c1c1e] placeholder:text-[#8e8e93]" />
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[var(--monday-purple)] to-[var(--monday-blue)] text-white flex items-center justify-center font-bold text-xs shadow-sm select-none">
+            <div className="flex items-center gap-1.5">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#a25ddc] to-[#007AFF] text-white flex items-center justify-center shadow-sm select-none">
                 <UserPlus size={14} />
               </div>
-              <button onClick={handleLogout} title="Cerrar sesión" className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors">
+              <button onClick={handleLogout} title="Cerrar sesión" className="p-1.5 text-[#8e8e93] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                 <LogOut size={17} />
               </button>
             </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#f5f6f8]">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#f2f2f7]">
           <div className="w-full min-h-full flex flex-col">
             
-            <div className="flex items-center gap-2 sm:gap-6 border-b border-gray-200 mb-6 overflow-x-auto no-scrollbar shrink-0">
+            <div className="flex items-center gap-1 mb-5 overflow-x-auto no-scrollbar shrink-0">
               <Tab label="Resumen" active={activeTab === 'resumen'} onClick={() => setActiveTab('resumen')} />
               <Tab label="Calendario" active={activeTab === 'calendario'} onClick={() => setActiveTab('calendario')} />
               <Tab label="Estadísticas" active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} />
@@ -388,28 +388,27 @@ export default function Dashboard() {
               />
             ) : (
               <>
-                <div className="flex flex-wrap items-center justify-between mb-8 gap-4">
-                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
-                    <button onClick={handlePrevMonth} className="p-1.5 hover:bg-gray-100 rounded text-gray-600 transition-colors"><ChevronLeft size={18} /></button>
-                    <span className="font-semibold text-gray-800 w-36 text-center capitalize">{monthName}</span>
-                    <button onClick={handleNextMonth} className="p-1.5 hover:bg-gray-100 rounded text-gray-600 transition-colors"><ChevronRight size={18} /></button>
+                <div className="flex flex-wrap items-center justify-between mb-5 gap-4">
+                  <div className="flex items-center gap-1 bg-white border border-[#e5e5ea] rounded-xl p-1 shadow-sm">
+                    <button onClick={handlePrevMonth} className="p-1.5 hover:bg-[#f2f2f7] rounded-lg text-[#3c3c43] transition-colors"><ChevronLeft size={17} /></button>
+                    <span className="font-semibold text-[#1c1c1e] w-36 text-center capitalize text-sm">{monthName}</span>
+                    <button onClick={handleNextMonth} className="p-1.5 hover:bg-[#f2f2f7] rounded-lg text-[#3c3c43] transition-colors"><ChevronRight size={17} /></button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                  <StatCard title="Ingresos Totales" amount={totalIncome} color="text-[var(--status-done)]" onClick={() => setIncomesListOpen(true)} />
-                  <StatCard title="Gastos Totales" amount={totalExpenses} subAmount={`Proyectado: $${formatCurrency(projectedExpenses)}`} color="text-[var(--status-stuck)]" />
-                  <StatCard title="Disponible Total" amount={accumulatedAvailable} color="text-[var(--primary)]" isTotal />
-                  <StatCard title="Ahorros Totales" amount={totalAhorros} color="text-purple-600" onClick={() => setSavingsModalOpen(true)} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <StatCard title="Ingresos Totales" amount={totalIncome} color="text-[#30d158]" onClick={() => setIncomesListOpen(true)} />
+                  <StatCard title="Gastos Totales" amount={totalExpenses} subAmount={`Proyectado: $${formatCurrency(projectedExpenses)}`} color="text-[#ff453a]" />
+                  <StatCard title="Disponible Total" amount={accumulatedAvailable} color="text-[#007AFF]" isTotal />
+                  <StatCard title="Ahorros Totales" amount={totalAhorros} color="text-[#bf5af2]" onClick={() => setSavingsModalOpen(true)} />
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-10">
-                  <div className="px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center justify-between bg-white border-b border-gray-100 gap-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
-                      <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <ChevronDown size={20} className="text-gray-400 shrink-0" />
-                        <span className="truncate">Registro Financiero</span>
-                        <span className="text-sm font-normal text-gray-500 ml-1">({currentMonthExpenses.length})</span>
+                <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-[#e5e5ea] overflow-hidden mb-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white border-b border-[#f2f2f7] gap-4 px-4 sm:px-5 py-3.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-wrap">
+                      <h2 className="text-[15px] font-semibold text-[#1c1c1e] flex items-center gap-2">
+                        <span>Registro Financiero</span>
+                        <span className="text-sm font-normal text-[#8e8e93]">({currentMonthExpenses.length})</span>
                       </h2>
                       {/* Filter button — portal-based panel */}
                       <div className="flex-shrink-0">
@@ -465,22 +464,22 @@ export default function Dashboard() {
                         document.body
                       )}
                     </div>
-                    <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full lg:w-auto mt-2 lg:mt-0">
-                      <button 
-                        onClick={() => setIncomeModalOpen(true)} 
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 text-xs sm:text-sm bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition-all active:scale-95 border border-blue-100"
-                      >
-                        <Plus size={14} className="sm:w-4 sm:h-4" />
-                        <span>Añadir Ingreso</span>
-                      </button>
-                      <button 
-                        onClick={() => setExpenseModalOpen(true)} 
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 sm:py-1.5 text-xs sm:text-sm bg-gray-900 text-white font-bold rounded-lg hover:bg-black transition-all active:scale-95 shadow-md"
-                      >
-                        <Plus size={14} className="sm:w-4 sm:h-4" />
-                        <span>Añadir Gasto</span>
-                      </button>
-                    </div>
+                     <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full lg:w-auto mt-2 lg:mt-0">
+                       <button 
+                         onClick={() => setIncomeModalOpen(true)} 
+                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 text-[13px] font-medium bg-[#f2f2f7] text-[#007AFF] rounded-full hover:bg-[#e5e5ea] transition-all active:scale-95 border border-[#e5e5ea]"
+                       >
+                         <Plus size={14} />
+                         <span>Añadir Ingreso</span>
+                       </button>
+                       <button 
+                         onClick={() => setExpenseModalOpen(true)} 
+                         className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 text-[13px] font-medium bg-[#1c1c1e] text-white rounded-full hover:bg-black transition-all active:scale-95 shadow-sm"
+                       >
+                         <Plus size={14} />
+                         <span>Añadir Gasto</span>
+                       </button>
+                     </div>
                   </div>
 
                   <div className="overflow-auto max-h-[60vh] rounded-b-xl border-t border-gray-100">
@@ -658,8 +657,8 @@ export default function Dashboard() {
 
 function NavItem({ icon, label, active, onClick, collapsed }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void, collapsed?: boolean }) {
   return (
-    <a href="#" onClick={(e) => { if(onClick) { e.preventDefault(); onClick(); } }} className={`flex items-center px-3 py-2.5 rounded-md transition-colors text-[14px] font-[400] ${active ? 'bg-[var(--sidebar-active)] text-blue-700 font-medium' : 'text-[var(--sidebar-text)] hover:bg-gray-100 focus:bg-gray-100'} ${collapsed ? 'justify-center' : 'gap-2.5'}`} title={collapsed ? label : undefined}>
-      <span className={active ? 'text-[var(--primary)]' : 'text-gray-500'}>{icon}</span>
+    <a href="#" onClick={(e) => { if(onClick) { e.preventDefault(); onClick(); } }} className={`flex items-center px-3 py-2 rounded-xl transition-all text-[13.5px] ${active ? 'bg-[#007AFF]/10 text-[#007AFF] font-medium' : 'text-[#3c3c43] hover:bg-[#f2f2f7] font-normal'} ${collapsed ? 'justify-center' : 'gap-2.5'}`} title={collapsed ? label : undefined}>
+      <span className={active ? 'text-[#007AFF]' : 'text-[#8e8e93]'}>{icon}</span>
       {!collapsed && <span className="truncate">{label}</span>}
     </a>
   );
@@ -667,7 +666,14 @@ function NavItem({ icon, label, active, onClick, collapsed }: { icon: React.Reac
 
 function Tab({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`pb-3 mb-[-1px] font-medium text-sm border-b-[3px] transition-all whitespace-nowrap focus:outline-none ${active ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}`}>
+    <button
+      onClick={onClick}
+      className={`px-3.5 py-1.5 rounded-full font-medium text-[13px] transition-all whitespace-nowrap focus:outline-none ${
+        active
+          ? 'bg-white text-[#007AFF] shadow-sm border border-[#e5e5ea]'
+          : 'text-[#6e6e73] hover:text-[#1c1c1e] hover:bg-white/60'
+      }`}
+    >
       {label}
     </button>
   );
@@ -675,15 +681,16 @@ function Tab({ label, active, onClick }: { label: string, active: boolean, onCli
 
 function StatCard({ title, amount, color, isTotal, onClick, subAmount }: { title: string, amount: number, color: string, isTotal?: boolean, onClick?: () => void, subAmount?: string }) {
   return (
-    <div onClick={onClick} className={`p-5 rounded-xl border shadow-[0_2px_4px_rgba(0,0,0,0.02)] flex flex-col justify-center transition-transform hover:-translate-y-0.5 duration-200 ${onClick ? 'cursor-pointer hover:shadow-md' : ''} ${isTotal ? 'bg-blue-50/50 border-blue-200 shadow-blue-100/50' : 'bg-white border-gray-200'}`}>
-      <span className="text-gray-500 text-[13px] font-semibold uppercase tracking-wide mb-1.5 flex items-center justify-between">
-        {title} {onClick && <Plus size={14} className="text-gray-400" />}
+    <div onClick={onClick} className={`p-5 rounded-2xl border flex flex-col gap-1 transition-all duration-200 ${onClick ? 'cursor-pointer hover:shadow-md active:scale-[0.98]' : ''} ${isTotal ? 'bg-[#007AFF]/5 border-[#007AFF]/20' : 'bg-white border-[#e5e5ea]'} shadow-[0_1px_3px_rgba(0,0,0,0.07)]`}>
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#8e8e93] flex items-center justify-between">
+        {title}
+        {onClick && <Plus size={13} className="text-[#8e8e93]" />}
       </span>
-      <span className={`text-3xl font-bold tabular-nums tracking-tight ${color}`}>
+      <span className={`text-[28px] font-bold tabular-nums tracking-tight leading-tight ${color}`}>
         ${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}
       </span>
       {subAmount && (
-        <span className="text-base text-gray-600 mt-1">{subAmount}</span>
+        <span className="text-[12px] text-[#8e8e93] mt-0.5">{subAmount}</span>
       )}
     </div>
   );
