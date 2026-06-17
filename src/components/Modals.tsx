@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
 import { Income, Expense, PaymentStatus, IncomeType, ExpenseCategory } from "@/types/finance";
+import type { CreditCard } from "@/types/finance";
 
 interface IncomeModalProps {
   isOpen: boolean;
@@ -130,9 +131,10 @@ interface ExpenseModalProps {
   onAdd: (expense: Omit<Expense, "id">) => void;
   onAddBulk?: (expenses: Omit<Expense, "id">[]) => void;
   categories: string[];
+  cards?: CreditCard[];
 }
 
-export function ExpenseModal({ isOpen, onClose, onAdd, onAddBulk, categories }: ExpenseModalProps) {
+export function ExpenseModal({ isOpen, onClose, onAdd, onAddBulk, categories, cards = [] }: ExpenseModalProps) {
   const [recurrenceMonths, setRecurrenceMonths] = useState(1);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -143,6 +145,7 @@ export function ExpenseModal({ isOpen, onClose, onAdd, onAddBulk, categories }: 
     status: "Completado" as PaymentStatus,
     paymentType: "Pago total",
     paymentMethod: "Efectivo",
+    creditedTo: "",
     user: "Ambos",
   });
 
@@ -447,9 +450,9 @@ export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, onAddBulk
   };
 
   const handleCancel = () => {
-    setFormData({ date: "", category: "General", concept: "", amount: "", description: "", status: "Completado", paymentType: "Pago total", paymentMethod: "Efectivo" });
+    setFormData({ date: "", category: "General", concept: "", amount: "", description: "", status: "Completado", paymentType: "Pago total", paymentMethod: "Efectivo", creditedTo: "" });
     onClose();
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 z-[110] flex items-center justify-center p-4 backdrop-blur-sm transition-all">
