@@ -90,9 +90,10 @@ export function useFinanceData() {
       date: expense.date,
       category: expense.category,
       status: expense.status,
-      payment_type: expense.paymentType,
-      payment_method: expense.paymentMethod,
-      description: expense.description,
+      payment_type: expense.paymentType || null,
+      payment_method: expense.paymentMethod || null,
+      description: expense.description || null,
+      credited_to: expense.creditedTo || null,
     }).select().single();
     if (data) setExpenses(prev => [mapExpense(data), ...prev]);
   }, [userId]);
@@ -109,6 +110,7 @@ export function useFinanceData() {
       payment_type: exp.paymentType,
       payment_method: exp.paymentMethod,
       description: exp.description,
+      credited_to: exp.creditedTo || null,
     }));
 
     const { data, error } = await supabase.from("expenses").insert(toInsert).select();
@@ -238,6 +240,7 @@ function mapExpense(row: any): Expense {
     paymentType: row.payment_type,
     paymentMethod: row.payment_method,
     description: row.description,
+    creditedTo: row.credited_to,
     user: row.user ?? "",
   };
 }
@@ -265,6 +268,7 @@ function fieldToDb(field: keyof Expense): string | null {
     paymentType: "payment_type",
     paymentMethod: "payment_method",
     description: "description",
+    creditedTo: "credited_to",
   };
   return map[field] ?? null;
 }

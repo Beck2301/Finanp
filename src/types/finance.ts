@@ -49,6 +49,7 @@ export interface Expense {
   paymentType?: PaymentType;
   paymentMethod?: PaymentMethod;
   description?: string;
+  creditedTo?: string;
 }
 
 export interface ColorConfig {

@@ -52,16 +52,23 @@ export function CreditCardsView({
     [purchases, activeCardId, showPaid]
   );
 
-  // Gastos de la tabla principal con esta tarjeta como forma de pago
+  // Gastos de la tabla principal con esta tarjeta como forma de pago (deuda)
   const mainTableExpenses = useMemo(() =>
     selectedCard
       ? expenses.filter(e =>
           e.paymentMethod === selectedCard.name &&
-          e.status !== "TC Pagado" &&
-          (showPaid ? true : true) // siempre mostrar los pendientes de pago TC
+          e.status !== "TC Pagado"
         )
       : [],
-    [expenses, selectedCard, showPaid]
+    [expenses, selectedCard]
+  );
+
+  // Abonos registrados hacia esta tarjeta (reducen la deuda)
+  const creditedPayments = useMemo(() =>
+    selectedCard
+      ? expenses.filter(e => e.creditedTo === selectedCard.name)
+      : [],
+    [expenses, selectedCard]
   );
 
   // IDs de compras TC sin pagar
@@ -78,31 +85,41 @@ export function CreditCardsView({
 
   const hasUnpaid = allUnpaidCCIds.length > 0 || mainExpenseIds.length > 0;
 
-  // Total pendiente combinado
+  // Total abonado a la tarjeta (reduce la deuda pendiente)
+  const totalCredited = useMemo(() =>
+    creditedPayments.reduce((a, e) => a + e.amount, 0),
+    [creditedPayments]
+  );
+
+  // Total pendiente combinado (compras - abonos)
   const unpaidTotal = useMemo(() => {
     const ccTotal = purchases
       .filter(p => p.creditCardId === activeCardId && !p.paid)
       .reduce((a, p) => a + p.amount, 0);
     const expTotal = mainTableExpenses.reduce((a, e) => a + e.amount, 0);
-    return ccTotal + expTotal;
-  }, [purchases, activeCardId, mainTableExpenses]);
+    return Math.max(0, ccTotal + expTotal - totalCredited);
+  }, [purchases, activeCardId, mainTableExpenses, totalCredited]);
 
-  // Deuda total de TODAS las tarjetas (CC + tabla principal)
+  // Deuda total de TODAS las tarjetas (CC + tabla principal - abonos)
   const totalDebt = useMemo(() => {
     const ccDebt = purchases.filter(p => !p.paid).reduce((a, p) => a + p.amount, 0);
     const expDebt = expenses.filter(e =>
       cards.some(c => c.name === e.paymentMethod) && e.status !== "TC Pagado"
     ).reduce((a, e) => a + e.amount, 0);
-    return ccDebt + expDebt;
+    const totalCredits = expenses
+      .filter(e => cards.some(c => c.name === e.creditedTo))
+      .reduce((a, e) => a + e.amount, 0);
+    return Math.max(0, ccDebt + expDebt - totalCredits);
   }, [purchases, expenses, cards]);
 
-  // Unpaid por tarjeta (para el widget)
+  // Unpaid por tarjeta (para el widget) — descontando abonos
   const unpaidByCard = useMemo(() => {
     const map: Record<string, number> = {};
     cards.forEach(card => {
       const cc = purchases.filter(p => p.creditCardId === card.id && !p.paid).reduce((a, p) => a + p.amount, 0);
       const exp = expenses.filter(e => e.paymentMethod === card.name && e.status !== "TC Pagado").reduce((a, e) => a + e.amount, 0);
-      map[card.id] = cc + exp;
+      const credited = expenses.filter(e => e.creditedTo === card.name).reduce((a, e) => a + e.amount, 0);
+      map[card.id] = Math.max(0, cc + exp - credited);
     });
     return map;
   }, [cards, purchases, expenses]);
@@ -201,7 +218,7 @@ export function CreditCardsView({
               </div>
             </div>
 
-            {cardPurchases.length === 0 && mainTableExpenses.length === 0 ? (
+            {cardPurchases.length === 0 && mainTableExpenses.length === 0 && creditedPayments.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-gray-400 text-sm">
                   {showPaid ? "No hay compras registradas." : "No hay compras pendientes."}
@@ -236,11 +253,20 @@ export function CreditCardsView({
                     {mainTableExpenses.map(e => (
                       <MainExpenseRow key={e.id} expense={e} />
                     ))}
+                    {/* Abonos registrados a esta tarjeta */}
+                    {creditedPayments.map(e => (
+                      <CreditedPaymentRow key={e.id} expense={e} />
+                    ))}
                   </tbody>
                   <tfoot>
                     <tr className="bg-gray-50 border-t border-gray-200 font-semibold text-gray-700">
                       <td className="px-4 py-3" colSpan={3}>
                         Total pendiente de pago
+                        {totalCredited > 0 && (
+                          <span className="ml-2 text-[11px] font-normal text-green-600">
+                            (abonado: -${totalCredited.toLocaleString("en-US", { minimumFractionDigits: 2 })})
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums font-bold text-gray-900">
                         ${unpaidTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })} US$
@@ -289,7 +315,9 @@ export function CreditCardsView({
           categories={categories}
           onClose={() => setShowGeneratePayment(false)}
           onGenerate={(details) => {
-            onGeneratePayment(activeCardId, allUnpaidCCIds, mainExpenseIds, details);
+            const purchaseIds = details.markAsPaid ? allUnpaidCCIds : [];
+            const expIds = details.markAsPaid ? mainExpenseIds : [];
+            onGeneratePayment(activeCardId, purchaseIds, expIds, details);
             setShowGeneratePayment(false);
           }}
         />
@@ -466,6 +494,36 @@ function MainExpenseRow({ expense }: { expense: Expense }) {
   );
 }
 
+// ── Credited Payment Row (abono from expenses table) ─────────────────────────────
+
+function CreditedPaymentRow({ expense }: { expense: Expense }) {
+  const dateStr = new Date(expense.date + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
+  return (
+    <tr className="hover:bg-green-50/40 transition-colors bg-green-50/20 border-l-2 border-green-400">
+      <td className="px-4 py-2.5 text-gray-600 text-sm">{dateStr}</td>
+      <td className="px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <span className="text-gray-800 font-medium text-sm">{expense.concept}</span>
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full border border-green-200 shrink-0">
+            Abono
+          </span>
+        </div>
+      </td>
+      <td className="px-4 py-2.5 hidden sm:table-cell">
+        <span className="text-gray-500 text-xs">{expense.category || "—"}</span>
+      </td>
+      <td className="px-4 py-2.5 text-right">
+        <span className="text-green-600 font-bold text-sm tabular-nums">-${expense.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+      </td>
+      <td className="px-4 py-2.5 hidden md:table-cell text-gray-400 text-sm">{expense.description || "—"}</td>
+      <td className="px-4 py-2.5 text-center">
+        <span className="text-[11px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Abonado</span>
+      </td>
+      <td className="px-2 py-2.5" />
+    </tr>
+  );
+}
+
 // ── Modals ────────────────────────────────────────────────────────────────────
 
 function AddCardModal({ onClose, onSave }: { onClose: () => void; onSave: (card: Omit<CreditCard, "id" | "user">) => void }) {
@@ -545,32 +603,95 @@ function AddPurchaseModal({ cardId, cardName, categories, onClose, onSave }: { c
 function GeneratePaymentModal({ cardName, unpaidTotal, unpaidCount, categories, onClose, onGenerate }: {
   cardName: string; unpaidTotal: number; unpaidCount: number; categories: string[];
   onClose: () => void;
-  onGenerate: (details: { date: string; paymentType: string; category: string; description?: string; amount: number }) => void;
+  onGenerate: (details: { date: string; paymentType: string; paymentMethod: string; category: string; description?: string; amount: number; markAsPaid: boolean }) => void;
 }) {
-  const [form, setForm] = useState({ date: new Date().toISOString().split("T")[0], paymentType: "Pago total", category: "Bancos", description: "", amount: unpaidTotal.toFixed(2) });
+  const [form, setForm] = useState({
+    date: new Date().toISOString().split("T")[0],
+    paymentType: "Pago total",
+    paymentMethod: "Transferencia",
+    category: "Bancos",
+    description: "",
+    amount: unpaidTotal.toFixed(2),
+    markAsPaid: true,
+  });
+
+  const handleTypeChange = (paymentType: string) => {
+    setForm(f => ({ ...f, paymentType, markAsPaid: paymentType === "Pago total" }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onGenerate({ date: form.date, paymentType: form.paymentType, category: form.category, description: form.description.trim() || undefined, amount: parseFloat(form.amount) || 0 });
+    onGenerate({
+      date: form.date,
+      paymentType: form.paymentType,
+      paymentMethod: form.paymentMethod,
+      category: form.category,
+      description: form.description.trim() || undefined,
+      amount: parseFloat(form.amount) || 0,
+      markAsPaid: form.markAsPaid,
+    });
   };
+
+  const isPartial = form.paymentType !== "Pago total";
+
   return (
     <Modal title={`Generar Pago — ${cardName}`} onClose={onClose}>
-      <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-2 text-sm text-orange-700">
+      <div className={`mb-4 p-3 rounded-lg flex items-start gap-2 text-sm border ${isPartial ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-orange-50 border-orange-200 text-orange-700"}`}>
         <AlertCircle size={16} className="shrink-0 mt-0.5" />
-        <span>Se creará un <strong>gasto pendiente</strong> en tu registro. Las {unpaidCount} compras quedarán marcadas como pagadas. El saldo se descuenta cuando marques ese gasto como <strong>Completado</strong>.</span>
+        {isPartial
+          ? <span>Se registrará un <strong>abono</strong> en tu registro financiero. Las compras <strong>{form.markAsPaid ? "quedarán marcadas como pagadas" : "permanecerán pendientes"}</strong>.</span>
+          : <span>Se registrará el pago en tu tabla general como gasto <strong>Pendiente</strong>. Las {unpaidCount} compras quedarán marcadas como pagadas. El saldo se descuenta cuando lo marques como <strong>Completado</strong>.</span>
+        }
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Fecha de pago *"><input required type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className={inputCls} /></Field>
-          <Field label="Monto ($) *"><div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span><input required type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className={`${inputCls} pl-7 font-bold`} /></div></Field>
+          <Field label="Monto ($) *">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+              <input required type="number" step="0.01" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} className={`${inputCls} pl-7 font-bold`} />
+            </div>
+          </Field>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Tipo de pago"><select value={form.paymentType} onChange={e => setForm(f => ({ ...f, paymentType: e.target.value }))} className={inputCls}><option>Pago total</option><option>Pago mínimo</option><option>Pago parcial</option></select></Field>
-          <Field label="Categoría del gasto"><select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className={inputCls}>{categories.map(c => <option key={c} value={c}>{c}</option>)}</select></Field>
+          <Field label="Tipo de pago">
+            <select value={form.paymentType} onChange={e => handleTypeChange(e.target.value)} className={inputCls}>
+              <option>Pago total</option>
+              <option>Pago mínimo</option>
+              <option>Pago parcial</option>
+            </select>
+          </Field>
+          <Field label="Forma de pago">
+            <select value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))} className={inputCls}>
+              <option>Transferencia</option>
+              <option>Efectivo</option>
+              <option>Tarjeta</option>
+              <option>SPEI</option>
+            </select>
+          </Field>
         </div>
+        <Field label="Categoría del gasto">
+          <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className={inputCls}>
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </Field>
         <Field label="Descripción (opcional)"><input type="text" placeholder="Notas adicionales..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className={inputCls} /></Field>
+        <label className="flex items-center gap-3 cursor-pointer select-none p-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors">
+          <input
+            type="checkbox"
+            checked={form.markAsPaid}
+            onChange={e => setForm(f => ({ ...f, markAsPaid: e.target.checked }))}
+            className="w-4 h-4 rounded accent-orange-500 cursor-pointer"
+          />
+          <span className="text-sm font-medium text-gray-700">
+            Marcar las {unpaidCount} compras como pagadas
+          </span>
+        </label>
         <div className="pt-2 flex gap-3">
           <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-lg font-semibold text-sm transition-colors">Cancelar</button>
-          <button type="submit" className="flex-[1.5] px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold text-sm transition-all shadow-md active:scale-95">Generar Gasto Pendiente</button>
+          <button type="submit" className={`flex-[1.5] px-4 py-2.5 text-white rounded-lg font-semibold text-sm transition-all shadow-md active:scale-95 ${isPartial ? "bg-blue-500 hover:bg-blue-600" : "bg-orange-500 hover:bg-orange-600"}`}>
+            {isPartial ? "Registrar Abono" : "Registrar Pago"}
+          </button>
         </div>
       </form>
     </Modal>

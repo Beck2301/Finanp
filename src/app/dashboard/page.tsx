@@ -10,7 +10,7 @@ import {
   Trash2, ArrowUpDown, LogOut, UserPlus
 } from "lucide-react";
 import { Income, Expense, PaymentStatus } from "@/types/finance";
-import { IncomeModal, ExpenseModal, CategoryModal, CustomColumnModal, EditExpenseModal, IncomesListModal } from "@/components/Modals";
+import { IncomeModal, ExpenseModal, CategoryModal, CustomColumnModal, EditExpenseModal, IncomesListModal, SavingsHistoryModal } from "@/components/Modals";
 import { CalendarView } from "@/components/CalendarView";
 import { StatsView } from "@/components/StatsView";
 import { BudgetView } from "@/components/BudgetView";
@@ -126,6 +126,7 @@ export default function Dashboard() {
   const [isColumnModalOpen, setColumnModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isIncomesListOpen, setIncomesListOpen] = useState(false);
+  const [isSavingsModalOpen, setSavingsModalOpen] = useState(false);
 
   // Filters & Month
   const [currentDate, setCurrentDate] = useState(() => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), 1); });
@@ -183,7 +184,7 @@ export default function Dashboard() {
   }, [paymentMethods, cards]);
 
   // Total Incomes for Current Month (including Recurrent ones that apply this month)
-  const totalIncome = currentMonthIncomes.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalIncome = currentMonthIncomes.filter(i => i.type !== "Saldo de Ahorros").reduce((acc, curr) => acc + curr.amount, 0);
 
   // Total Expenses for Current Month (CC purchases excluded from balance)
   const projectedExpenses = currentMonthExpenses.reduce((acc, curr) => acc + curr.amount, 0);
@@ -194,6 +195,7 @@ export default function Dashboard() {
   // Accumulated Balance (Disponible Acumulado) up to the selected month
   let accumulatedIncome = 0;
   incomes.forEach(i => {
+    if (i.type === "Saldo de Ahorros") return;
     const incDate = new Date(i.date);
     if (incDate.getFullYear() > currentDate.getFullYear() ||
        (incDate.getFullYear() === currentDate.getFullYear() && incDate.getMonth() > currentDate.getMonth())) {
@@ -218,12 +220,8 @@ export default function Dashboard() {
   const accumulatedAvailable = accumulatedIncome - accumulatedExpenses;
 
   // Total Savings (Ahorros)
-  const totalAhorros = expenses
-    .filter(e => e.status === "Completado" && e.paymentType?.toLowerCase() === "ahorro")
-    .reduce((acc, curr) => acc + curr.amount, 0) 
-    - incomes
-    .filter(i => i.type?.toLowerCase() === "retiro de ahorro")
-    .reduce((acc, curr) => acc + curr.amount, 0);
+  const savingsTransactions = incomes.filter(i => i.type === "Saldo de Ahorros").sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const totalAhorros = savingsTransactions.reduce((acc, curr) => acc + curr.amount, 0);
 
   const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
 
@@ -289,10 +287,11 @@ export default function Dashboard() {
     <div className="flex h-screen w-full overflow-hidden bg-[#f5f6f8] text-[var(--foreground)] font-sans">
       <CustomColumnModal isOpen={isColumnModalOpen} onClose={() => setColumnModalOpen(false)} onAdd={(name) => setCustomColumns([...customColumns, { id: `col_${Date.now()}`, name }])} />
       <IncomeModal isOpen={isIncomeModalOpen} onClose={() => setIncomeModalOpen(false)} onAdd={(i) => addIncome(i)} />
-      <IncomesListModal isOpen={isIncomesListOpen} onClose={() => setIncomesListOpen(false)} incomes={incomes} onUpdate={updateIncomeDb} onDelete={deleteIncome} onAdd={addIncome} />
-      <ExpenseModal isOpen={isExpenseModalOpen} onClose={() => setExpenseModalOpen(false)} onAdd={(e) => addExpense(e)} onAddBulk={(es) => addExpensesBulk(es)} categories={categories} />
-      <EditExpenseModal isOpen={!!editingExpense} onClose={() => setEditingExpense(null)} expense={editingExpense} onUpdate={updateExpenseBulk} onAddBulk={addExpensesBulk} categories={categories} />
+      <IncomesListModal isOpen={isIncomesListOpen} onClose={() => setIncomesListOpen(false)} incomes={currentMonthIncomes} onUpdate={updateIncomeDb} onDelete={deleteIncome} onAdd={addIncome} />
+      <ExpenseModal isOpen={isExpenseModalOpen} onClose={() => setExpenseModalOpen(false)} onAdd={(e) => addExpense(e)} onAddBulk={(es) => addExpensesBulk(es)} categories={categories} cards={cards} />
+      <EditExpenseModal isOpen={!!editingExpense} onClose={() => setEditingExpense(null)} expense={editingExpense} onUpdate={updateExpenseBulk} onAddBulk={addExpensesBulk} categories={categories} cards={cards} />
       <CategoryModal isOpen={isCategoryModalOpen} onClose={() => setCategoryModalOpen(false)} categories={categories} setCategories={updateCategories} />
+      <SavingsHistoryModal isOpen={isSavingsModalOpen} onClose={() => setSavingsModalOpen(false)} transactions={savingsTransactions} totalAhorros={totalAhorros} onAdd={addIncome} onUpdate={updateIncomeDb} onDelete={deleteIncome} />
       {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <aside className={`fixed md:static inset-y-0 left-0 z-50 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0'} ${isSidebarCollapsed ? 'md:w-[68px]' : 'md:w-[260px]'}`}>
@@ -401,7 +400,7 @@ export default function Dashboard() {
                   <StatCard title="Ingresos Totales" amount={totalIncome} color="text-[var(--status-done)]" onClick={() => setIncomesListOpen(true)} />
                   <StatCard title="Gastos Totales" amount={totalExpenses} subAmount={`Proyectado: $${formatCurrency(projectedExpenses)}`} color="text-[var(--status-stuck)]" />
                   <StatCard title="Disponible Total" amount={accumulatedAvailable} color="text-[var(--primary)]" isTotal />
-                  <StatCard title="Ahorros Totales" amount={totalAhorros} color="text-purple-600" />
+                  <StatCard title="Ahorros Totales" amount={totalAhorros} color="text-purple-600" onClick={() => setSavingsModalOpen(true)} />
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-10">
@@ -513,6 +512,10 @@ export default function Dashboard() {
                           <CreditCard size={14} /> Forma de pago
                           <ResizeHandle onResize={(w) => handleResize('paymentMethod', w)} onSave={(w) => saveResize('paymentMethod', w)} />
                         </div>
+                        <div style={{ width: localColumnWidths.creditedTo || 140 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
+                          <CreditCard size={14} /> Abonado a
+                          <ResizeHandle onResize={(w) => handleResize('creditedTo', w)} onSave={(w) => saveResize('creditedTo', w)} />
+                        </div>
                         <div style={{ width: localColumnWidths.category || 130 }} className="p-2 flex items-center gap-1.5 border-r border-gray-300 font-medium relative shrink-0">
                           <Building size={14} /> Categoría
                           <ResizeHandle onResize={(w) => handleResize('category', w)} onSave={(w) => saveResize('category', w)} />
@@ -585,6 +588,13 @@ export default function Dashboard() {
                               <TablePillSelect value={item.paymentMethod || ''} options={allPaymentMethods} type="paymentMethod" onSelect={(v) => updateExpense(item.id, 'paymentMethod', v)} onAddOption={(v) => updatePaymentMethods([...paymentMethods, v])} onDeleteOption={(v) => updatePaymentMethods(paymentMethods.filter(s => s !== v))} colors={colors} onUpdateColors={updateColors} ccCardNames={ccCardNames} />
                             </div>
                             
+                            <div style={{ width: localColumnWidths.creditedTo || 140 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
+                              <select value={item.creditedTo || ""} onChange={e => updateExpense(item.id, 'creditedTo', e.target.value || null)} className="w-full bg-transparent outline-none text-xs text-gray-600 cursor-pointer p-1 hover:bg-gray-50 rounded border border-transparent focus:border-blue-300">
+                                <option value="">—</option>
+                                {cards.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                              </select>
+                            </div>
+                            
                             <div style={{ width: localColumnWidths.category || 130 }} className="p-2 border-r border-gray-300 flex items-center overflow-visible shrink-0">
                               <TablePillSelect value={item.category} options={categories} type="category" onSelect={(v) => updateExpense(item.id, 'category', v)} onAddOption={(v) => updateCategories([...categories, v])} onDeleteOption={(v) => { if(v.toLowerCase() === 'ahorro') { alert('Esta opción es obligatoria para el funcionamiento de tus ahorros y no se puede borrar.'); return; } updateCategories(categories.filter(s => s !== v)); }} colors={colors} onUpdateColors={updateColors} />
                             </div>
@@ -625,6 +635,7 @@ export default function Dashboard() {
                           <div style={{ width: localColumnWidths.amount || 130 }} className="p-2 border-r border-gray-300 flex items-center justify-end font-mono font-bold text-gray-800 text-[14px] shrink-0">{formatCurrency(totalExpenses)} US$</div>
                           <div style={{ width: localColumnWidths.paymentType || 180 }} className="p-2 border-r border-gray-300 shrink-0"></div>
                           <div style={{ width: localColumnWidths.paymentMethod || 140 }} className="p-2 border-r border-gray-300 shrink-0"></div>
+                          <div style={{ width: localColumnWidths.creditedTo || 140 }} className="p-2 border-r border-gray-300 shrink-0"></div>
                           <div style={{ width: localColumnWidths.category || 130 }} className="p-2 border-r border-gray-300 shrink-0"></div>
                           <div style={{ width: localColumnWidths.description || 180 }} className="p-2 border-r border-gray-300 shrink-0"></div>
                           {customColumns.map(col => <div key={col.id} style={{ width: localColumnWidths[col.id] || 150 }} className="p-2 border-r border-gray-300 shrink-0"></div>)}

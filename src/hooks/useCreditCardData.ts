@@ -111,6 +111,7 @@ export function useCreditCardData(
     paymentDetails: {
       date: string;
       paymentType: string;
+      paymentMethod?: string;
       category: string;
       description?: string;
       amount: number;
@@ -126,7 +127,7 @@ export function useCreditCardData(
       category: paymentDetails.category,
       status: "Pendiente",
       paymentType: paymentDetails.paymentType,
-      paymentMethod: "Transferencia",
+      paymentMethod: paymentDetails.paymentMethod || "Transferencia",
       description: paymentDetails.description || "",
       user: "",
     });

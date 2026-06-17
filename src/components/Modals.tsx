@@ -85,7 +85,7 @@ export function IncomeModal({ isOpen, onClose, onAdd }: IncomeModalProps) {
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Clasificación</label>
               <div className="flex gap-2">
-                {["Recurrente", "Extra", "Retiro de ahorro"].map(t => (
+                {["Recurrente", "Extra"].map(t => (
                   <button
                     key={t}
                     type="button"
@@ -177,6 +177,7 @@ export function ExpenseModal({ isOpen, onClose, onAdd, onAddBulk, categories }: 
       status: "Pendiente" as PaymentStatus,
       paymentType: "Pago total",
       paymentMethod: "Efectivo",
+      creditedTo: "",
       user: "Ambos",
       description: ""
     });
@@ -253,7 +254,22 @@ export function ExpenseModal({ isOpen, onClose, onAdd, onAddBulk, categories }: 
                 <option value="Efectivo">Efectivo</option>
                 <option value="Tarjeta">Tarjeta</option>
                 <option value="Transferencia">Transferencia</option>
+                {cards.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Abonado a (Tarjeta)</label>
+              <select value={formData.creditedTo} onChange={e => setFormData({...formData, creditedTo: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-medium text-gray-700 bg-white">
+                <option value="">— No es abono —</option>
+                {cards.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Detalle</label>
+              <input type="text" placeholder="Añadir detalle (opcional)..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-medium text-gray-700" />
             </div>
           </div>
 
@@ -363,7 +379,7 @@ export function CustomColumnModal({ isOpen, onClose, onAdd }: { isOpen: boolean,
   );
 }
 
-export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, onAddBulk, categories }: { isOpen: boolean, onClose: () => void, expense: Expense | null, onUpdate: (id: string, updates: Partial<Expense>) => void, onAddBulk?: (expenses: Omit<Expense, "id">[]) => void, categories: string[] }) {
+export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, onAddBulk, categories, cards = [] }: { isOpen: boolean, onClose: () => void, expense: Expense | null, onUpdate: (id: string, updates: Partial<Expense>) => void, onAddBulk?: (expenses: Omit<Expense, "id">[]) => void, categories: string[], cards?: CreditCard[] }) {
   const [recurrenceMonths, setRecurrenceMonths] = useState(1);
   const [formData, setFormData] = useState({
     date: "",
@@ -374,6 +390,7 @@ export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, onAddBulk
     status: "Completado" as PaymentStatus,
     paymentType: "Pago total",
     paymentMethod: "Efectivo",
+    creditedTo: "",
   });
 
   if (!isOpen || !expense) return null;
@@ -381,13 +398,14 @@ export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, onAddBulk
   if (formData.concept === "" && expense.concept) {
     setFormData({
       date: expense.date,
-      category: expense.category,
+      category: expense.category || categories[0] || "General",
       concept: expense.concept,
       amount: expense.amount.toString(),
       description: expense.description || "",
-      status: expense.status,
+      status: expense.status || "Pendiente",
       paymentType: expense.paymentType || "Pago total",
       paymentMethod: expense.paymentMethod || "Efectivo",
+      creditedTo: expense.creditedTo || "",
     });
   }
 
@@ -396,6 +414,7 @@ export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, onAddBulk
     onUpdate(expense.id, {
       ...formData,
       amount: parseFloat(formData.amount) || 0,
+      creditedTo: formData.creditedTo || undefined,
     });
 
     if (formData.category === "Recurrente" && recurrenceMonths > 1 && onAddBulk) {
@@ -415,13 +434,14 @@ export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, onAddBulk
           description: formData.description,
           paymentType: formData.paymentType,
           paymentMethod: formData.paymentMethod,
+          creditedTo: formData.creditedTo || undefined,
           user: expense.user
         });
       }
       onAddBulk(bulkExpenses);
     }
 
-    setFormData({ date: "", category: "General", concept: "", amount: "", description: "", status: "Completado", paymentType: "Pago total", paymentMethod: "Efectivo" });
+    setFormData({ date: "", category: "General", concept: "", amount: "", description: "", status: "Completado", paymentType: "Pago total", paymentMethod: "Efectivo", creditedTo: "" });
     setRecurrenceMonths(1);
     onClose();
   };
@@ -492,7 +512,22 @@ export function EditExpenseModal({ isOpen, onClose, expense, onUpdate, onAddBulk
               <select value={formData.paymentMethod} onChange={e => setFormData({...formData, paymentMethod: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-medium text-gray-700 bg-white">
                 <option value="Efectivo">Efectivo</option>
                 <option value="Tarjeta">Tarjeta</option>
+                <option value="Transferencia">Transferencia</option>
+                {cards.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Abonado a (Tarjeta)</label>
+              <select value={formData.creditedTo} onChange={e => setFormData({...formData, creditedTo: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-medium text-gray-700 bg-white">
+                <option value="">— No es abono —</option>
+                {cards.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Detalle</label>
+              <input type="text" placeholder="Añadir detalle (opcional)..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-medium text-gray-700" />
             </div>
           </div>
           <div className="pt-2 flex gap-3">
@@ -542,12 +577,12 @@ export function IncomesListModal({ isOpen, onClose, incomes, onUpdate, onDelete,
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50/30">
-          {incomes.length === 0 ? (
+          {incomes.filter(i => i.type !== "Saldo de Ahorros").length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-gray-400 text-sm font-medium">No hay ingresos registrados.</p>
             </div>
           ) : (
-            incomes.map(inc => (
+            incomes.filter(i => i.type !== "Saldo de Ahorros").map(inc => (
               <div key={inc.id} className="bg-white border border-gray-100 rounded-lg p-3 hover:border-gray-200 transition-all shadow-sm group">
                 {/* Row 1: Concept + Delete */}
                 <div className="flex items-center gap-2 mb-2">
@@ -576,7 +611,6 @@ export function IncomesListModal({ isOpen, onClose, incomes, onUpdate, onDelete,
                   >
                     <option value="Extra">Extra</option>
                     <option value="Recurrente">Recurrente</option>
-                    <option value="Retiro de ahorro">Retiro de ahorro</option>
                   </select>
 
                   <input 
@@ -602,15 +636,121 @@ export function IncomesListModal({ isOpen, onClose, incomes, onUpdate, onDelete,
           )}
         </div>
 
-        {incomes.length > 0 && (
+        {incomes.filter(i => i.type !== "Saldo de Ahorros").length > 0 && (
           <div className="px-6 py-4 border-t border-gray-100 bg-white flex justify-between items-center">
-            <span className="text-gray-400 font-semibold uppercase text-[10px] tracking-wider">Total Acumulado</span>
+            <span className="text-gray-400 font-semibold uppercase text-[10px] tracking-wider">Total del Mes</span>
             <div className="text-xl font-semibold text-gray-800">
               <span className="text-gray-300 mr-1">$</span>
-              {totalIncomes.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {incomes.filter(i => i.type !== "Saldo de Ahorros").reduce((acc, inc) => acc + inc.amount, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Modal for managing savings history
+export function SavingsHistoryModal({ isOpen, onClose, transactions, totalAhorros, onAdd, onUpdate, onDelete }: { isOpen: boolean, onClose: () => void, transactions: Income[], totalAhorros: number, onAdd: (income: Omit<Income, "id">) => void, onUpdate: (id: string, updates: Partial<Income>) => void, onDelete: (id: string) => void }) {
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [actionType, setActionType] = useState<"Agregar" | "Retirar">("Agregar");
+
+  if (!isOpen) return null;
+
+  const handleAddTransaction = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(amount) || 0;
+    if (val <= 0) return;
+
+    onAdd({
+      source: actionType === "Agregar" ? "Ingreso a ahorros" : "Retiro de ahorros",
+      amount: actionType === "Agregar" ? val : -val,
+      date: new Date().toISOString().split('T')[0],
+      status: "Completado",
+      type: "Saldo de Ahorros" as any,
+      description: description.trim(),
+      user: "Ambos"
+    });
+
+    setAmount("");
+    setDescription("");
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-[100] flex items-center justify-center p-4 backdrop-blur-sm transition-all">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] border border-gray-100">
+        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/30">
+          <h2 className="text-lg font-semibold text-gray-800">Historial de Ahorros</h2>
+          <button type="button" onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
+        </div>
+
+        {/* Transaction Form */}
+        <form onSubmit={handleAddTransaction} className="p-4 bg-purple-50/30 border-b border-gray-100 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          <div className="md:col-span-3">
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Acción</label>
+            <div className="flex bg-white rounded-lg border border-gray-200 p-1">
+              <button type="button" onClick={() => setActionType("Agregar")} className={`flex-1 text-xs py-1.5 rounded-md font-bold transition-all ${actionType === "Agregar" ? 'bg-purple-100 text-purple-700' : 'text-gray-400 hover:text-gray-600'}`}>Agregar</button>
+              <button type="button" onClick={() => setActionType("Retirar")} className={`flex-1 text-xs py-1.5 rounded-md font-bold transition-all ${actionType === "Retirar" ? 'bg-red-100 text-red-600' : 'text-gray-400 hover:text-gray-600'}`}>Retirar</button>
+            </div>
+          </div>
+          
+          <div className="md:col-span-3">
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Monto ($)</label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">$</div>
+              <input type="number" step="0.01" min="0.01" required value={amount} onChange={e => setAmount(e.target.value)} className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none text-sm font-semibold text-gray-800 tabular-nums" placeholder="0.00" />
+            </div>
+          </div>
+
+          <div className="md:col-span-4">
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Descripción</label>
+            <input type="text" required value={description} onChange={e => setDescription(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none text-sm font-medium text-gray-700" placeholder="Ej. Bono, Compra laptop..." />
+          </div>
+
+          <div className="md:col-span-2">
+            <button type="submit" className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-sm transition-all shadow-sm active:scale-95">Guardar</button>
+          </div>
+        </form>
+
+        {/* History List */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50/30">
+          {transactions.length === 0 ? (
+            <div className="py-8 text-center text-gray-400 text-sm font-medium">No hay movimientos de ahorro registrados.</div>
+          ) : (
+            transactions.map(t => (
+              <div key={t.id} className="flex items-center justify-between bg-white border border-gray-100 rounded-lg p-3 hover:border-gray-200 transition-all shadow-sm group">
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${t.amount >= 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                    {t.amount >= 0 ? '+' : '-'}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <input type="date" value={t.date} onChange={e => onUpdate(t.id, { date: e.target.value })} className="bg-transparent outline-none text-[11px] text-gray-400 font-bold focus:text-gray-600 cursor-pointer w-24" />
+                    </div>
+                    <input type="text" value={t.description || ''} onChange={e => onUpdate(t.id, { description: e.target.value })} className="text-sm font-semibold text-gray-700 bg-transparent outline-none focus:bg-gray-50 rounded px-1 -ml-1 mt-0.5 min-w-[200px]" placeholder="Añadir descripción..." />
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className={`font-mono font-bold text-base ${t.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {t.amount >= 0 ? '+' : '-'}${Math.abs(t.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </div>
+                  <button onClick={() => onDelete(t.id)} className="p-1.5 text-gray-300 hover:text-red-500 transition-colors sm:opacity-0 sm:group-hover:opacity-100"><Trash2 size={16} /></button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Total */}
+        <div className="px-6 py-4 border-t border-gray-100 bg-white flex justify-between items-center">
+          <span className="text-gray-400 font-semibold uppercase text-[10px] tracking-wider">Ahorro Total Disponible</span>
+          <div className="text-2xl font-bold text-purple-600">
+            <span className="text-purple-300 mr-1">$</span>
+            {totalAhorros.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </div>
+        </div>
       </div>
     </div>
   );

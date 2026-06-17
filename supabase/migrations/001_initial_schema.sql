@@ -15,6 +15,7 @@ create table if not exists expenses (
   payment_type text,
   payment_method text,
   description text,
+  credited_to text,
   created_at timestamptz default now()
 );
 
